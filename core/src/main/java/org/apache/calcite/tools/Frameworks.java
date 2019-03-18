@@ -51,6 +51,7 @@ import java.util.Properties;
 /**
  * Tools for invoking Calcite functionality without initializing a container /
  * server first.
+ * note：在不初始化container和server的情况下触发Calcite功能的工具
  */
 public class Frameworks {
   private Frameworks() {
@@ -163,6 +164,7 @@ public class Frameworks {
   /**
    * Creates a root schema.
    *
+   * note: 创建一个RootSchema（addMetadataSchema：指的是当添加metadata时，是否包含相应的table、columns的定义）
    * @param addMetadataSchema Whether to add "metadata" schema containing
    *    definitions of tables, columns etc.
    */
@@ -188,6 +190,7 @@ public class Frameworks {
   /**
    * A builder to help you build a {@link FrameworkConfig} using defaults
    * where values aren't required.
+   * note: 如果参数没有指定的话，这个的参数都会走默认配置
    */
   public static class ConfigBuilder {
     private SqlRexConvertletTable convertletTable;
@@ -234,6 +237,7 @@ public class Frameworks {
       statisticProvider = config.getStatisticProvider();
     }
 
+    //note: 最后还是要构建 StdFrameworkConfig 实例
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
           programs, traitDefs, parserConfig, sqlToRelConverterConfig,
@@ -288,6 +292,7 @@ public class Frameworks {
       return this;
     }
 
+    //note: 这个必须要指定的
     public ConfigBuilder defaultSchema(SchemaPlus defaultSchema) {
       this.defaultSchema = defaultSchema;
       return this;

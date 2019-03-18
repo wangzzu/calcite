@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
  * A <code>RelOptPlanner</code> is a query optimizer: it transforms a relational
  * expression into a semantically equivalent relational expression, according to
  * a given set of rules and a cost model.
+ * note: 它是一个 query optimizer，它根据指定的 rules 和 cost 模型把一个关系表达式转换成一个相似的关系表达式
  */
 public interface RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
@@ -59,6 +60,7 @@ public interface RelOptPlanner {
    * Registers a rel trait definition. If the {@link RelTraitDef} has already
    * been registered, does nothing.
    *
+   * note：注册 trait
    * @return whether the RelTraitDef was added, as per
    * {@link java.util.Collection#add}
    */
@@ -95,6 +97,7 @@ public interface RelOptPlanner {
    * {@link #addRelTraitDef(RelTraitDef) registered} RelTraitDef
    * instances.
    *
+   * note：注册 Rule
    * @return whether the rule was added, as per
    * {@link java.util.Collection#add}
    */

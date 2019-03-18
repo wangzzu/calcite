@@ -21,6 +21,7 @@ package org.apache.calcite.plan;
  * A <code>CommonRelSubExprRule</code> is an abstract base class for rules
  * that are fired only on relational expressions that appear more than once
  * in a query tree.
+ * note：指的是这种 rule：只在 relational expressions 中触发，并且该 relational expressions 会在 query tree 出现多次
  */
 public abstract class CommonRelSubExprRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------

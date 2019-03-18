@@ -40,6 +40,7 @@ public abstract class CsvTable extends AbstractTable {
     this.protoRowType = protoRowType;
   }
 
+  //note: table定义的虚方法，定义table行记录的字段及字段类型
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
@@ -54,7 +55,7 @@ public abstract class CsvTable extends AbstractTable {
     }
   }
 
-  /** Various degrees of table "intelligence". */
+  /** Various degrees of table "intelligence". note：不同的类型，涉及到优化器相关 */
   public enum Flavor {
     SCANNABLE, FILTERABLE, TRANSLATABLE
   }

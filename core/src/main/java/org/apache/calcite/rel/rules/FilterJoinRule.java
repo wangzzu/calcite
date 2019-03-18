@@ -319,6 +319,7 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   /** Rule that tries to push filter expressions into a join
    * condition and into the inputs of the join. */
+  //note: join and filter一起出现时可以进行相应的优化
   public static class FilterIntoJoinRule extends FilterJoinRule {
     public FilterIntoJoinRule(boolean smart,
         RelBuilderFactory relBuilderFactory, Predicate predicate) {

@@ -25,6 +25,8 @@ import org.apache.calcite.rel.logical.LogicalSort;
 /**
  * Definition of the ordering trait.
  *
+ * note: ordering trait 的定义，ordering 是一个物理性质（不丢数据但是可以改变），而且它可以有多个值，因为排序字段可能有多个
+ *
  * <p>Ordering is a physical property (i.e. a trait) because it can be changed
  * without loss of information. The converter to do this is the
  * {@link org.apache.calcite.rel.core.Sort} operator.
@@ -64,7 +66,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
       RelNode rel,
       RelCollation toCollation,
       boolean allowInfiniteCostConverters) {
-    if (toCollation.getFieldCollations().isEmpty()) {
+    if (toCollation.getFieldCollations().isEmpty()) { //note: 需要排序的字段为空
       // An empty sort doesn't make sense.
       return null;
     }
@@ -72,9 +74,10 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     // Create a logical sort, then ask the planner to convert its remaining
     // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
     // convention)
+    //note: 新建一个 LogicalSort
     final Sort sort = LogicalSort.create(rel, toCollation, null, null);
-    RelNode newRel = planner.register(sort, rel);
-    final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
+    RelNode newRel = planner.register(sort, rel); //note: 将 RelNode 注册到 Planner 中
+    final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation); //note: 添加相应的物理属性
     if (!newRel.getTraitSet().equals(newTraitSet)) {
       newRel = planner.changeTraits(newRel, newTraitSet);
     }

@@ -29,6 +29,7 @@ import java.util.Objects;
  * BasicSqlType represents a standard atomic SQL type (excluding interval
  * types).
  *
+ * note:标准的院子SQL类型
  * <p>Instances of this class are immutable.
  */
 public class BasicSqlType extends AbstractSqlType {

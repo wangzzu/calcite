@@ -62,7 +62,7 @@ public interface SchemaFactory {
    *
    * @param parentSchema Parent schema
    * @param name Name of this schema
-   * @param operand The "operand" JSON property
+   * @param operand The "operand" JSON property //note: 主要是自定义的参数
    * @return Created schema
    */
   Schema create(

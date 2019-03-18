@@ -101,6 +101,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
 
   /** Deduces the names and types of a table's columns by reading the first line
    * of a CSV file. */
+  //note: 通过读第一行解析字段字段类型
   static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
       List<CsvFieldType> fieldTypes) {
     return deduceRowType(typeFactory, source, fieldTypes, false);

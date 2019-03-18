@@ -34,6 +34,7 @@ import java.util.List;
  * The name-resolution scope of a SELECT clause. The objects visible are those
  * in the FROM clause, and objects inherited from the parent scope.
  *
+ * note：select 语句的解析范围，可见的对象是FROM字句的对象和从父范围继承的对象
  *
  * <p>This object is both a {@link SqlValidatorScope} and a
  * {@link SqlValidatorNamespace}. In the query</p>

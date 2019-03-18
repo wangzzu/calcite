@@ -76,12 +76,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   public final void validate(RelDataType targetRowType) {
     switch (status) {
-    case UNVALIDATED:
+    case UNVALIDATED: //note: 还没开始 check
       try {
-        status = SqlValidatorImpl.Status.IN_PROGRESS;
+        status = SqlValidatorImpl.Status.IN_PROGRESS; //note: 更新当前 namespace 的状态
         Preconditions.checkArgument(rowType == null,
             "Namespace.rowType must be null before validate has been called");
-        RelDataType type = validateImpl(targetRowType);
+        RelDataType type = validateImpl(targetRowType); //note: 检查验证
         Preconditions.checkArgument(type != null,
             "validateImpl() returned null");
         setType(type);
@@ -89,9 +89,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         status = SqlValidatorImpl.Status.VALID;
       }
       break;
-    case IN_PROGRESS:
+    case IN_PROGRESS: //note: 已经开始 check 了，死循环了
       throw new AssertionError("Cycle detected during type-checking");
-    case VALID:
+    case VALID://note: 检查结束
       break;
     default:
       throw Util.unexpected(status);

@@ -115,6 +115,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * If true, the planner keeps applying rules as long as they continue to
    * reduce the cost. If false, the planner terminates as soon as it has found
    * any implementation, no matter how expensive.
+   * note：true：只要 rule apply 可以减少 cost，就会一直 apply；
+   * note：false：只要找到任何实现就会退出，默认是 true
    */
   protected boolean ambitious = true;
 
@@ -122,6 +124,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * If true, and if {@link #ambitious} is true, the planner waits a finite
    * number of iterations for the cost to improve.
    *
+   * note：true：如果 ambitious 也 true，planner 将会等待【有限次数】的迭代以提高成本；
+   * note：获取第一个有限 plan 的迭代次数记为 K，之后会设置一个目标 best cost（current best cost * COST_IMPROVEMENT）
+   * note：如果在 k 次迭代内不能满足，planner 就会退出，当前的 plan 为 best plan，否则会持续设置一个新目录 cost 进行相应的优化
+   * note：false：一直触发 rule，直到 rule queue 为 null；
    * <p>The number of iterations K is equal to the number of iterations
    * required to get the first finite plan. After the first finite plan, it
    * continues to fire rules to try to improve it. The planner sets a target
@@ -141,6 +147,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * <p>Any operand can be an 'entry point' to a rule call, when a RelNode is
    * registered which matches the operand. This map allows us to narrow down
    * operands based on the class of the RelNode.</p>
+   *
+   * note：根据 RelNode 的类型返回其可匹配的 RelOptRuleOperand
    */
   private final Multimap<Class<? extends RelNode>, RelOptRuleOperand>
       classOperands = LinkedListMultimap.create();
@@ -153,6 +161,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Canonical map from {@link String digest} to the unique
    * {@link RelNode relational expression} with that digest.
+   * note：digest 与 relational expression 的对应关系
    *
    * <p>Row type is part of the key for the rare occasion that similar
    * expressions have different types, e.g. variants of
@@ -165,6 +174,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Map each registered expression ({@link RelNode}) to its equivalence set
    * ({@link RelSubset}).
+   * note 每个注册的 RelNode，都有一个等价集合 RelSubset
    *
    * <p>We use an {@link IdentityHashMap} to simplify the process of merging
    * {@link RelSet} objects. Most {@link RelNode} objects are identified by
@@ -177,6 +187,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * The importance of relational expressions.
+   * note：每一个 relational expression 都有一个对应的 importance
    *
    * <p>The map contains only RelNodes whose importance has been overridden
    * using {@link RelOptPlanner#setImportance(RelNode, double)}. Other
@@ -194,24 +205,29 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Holds rule calls waiting to be fired.
+   * note：等待被调用的 rule 集合
    */
   final RuleQueue ruleQueue = new RuleQueue(this);
 
   /**
    * Holds the currently registered RelTraitDefs.
+   * note：RelTraitDefs 集合
    */
   private final List<RelTraitDef> traitDefs = new ArrayList<>();
 
   /**
    * Set of all registered rules.
+   * note：所有注册的 rule
    */
   protected final Set<RelOptRule> ruleSet = new HashSet<>();
 
+  //note: 一个递增的编号
   private int nextSetId = 0;
 
   /**
    * Incremented every time a relational expression is registered or two sets
    * are merged. Tells us whether anything is going on.
+   * note：当有 relational expression 注册或 set merge 时，就加1
    */
   private int registerCount;
 
@@ -238,6 +254,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   final Map<RelNode, Provenance> provenanceMap = new HashMap<>();
 
+  //note: 如果 rule 有调用时，放到这里，主要用于记录那些 RelNode 的来源
   final Deque<VolcanoRuleCall> ruleCallStack = new ArrayDeque<>();
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
@@ -255,6 +272,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Creates a uninitialized <code>VolcanoPlanner</code>. To fully initialize
    * it, the caller must register the desired set of relations, rules, and
    * calling conventions.
+   * note: 创建一个没有初始化的 VolcanoPlanner，如果要进行初始化，调用者必须注册 set of relations、rules、calling conventions.
    */
   public VolcanoPlanner() {
     this(null, null);
@@ -271,6 +289,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Creates a {@code VolcanoPlanner} with a given cost factory.
+   * note: 创建 VolcanoPlanner 实例，并制定 costFactory（默认为 VolcanoCost.FACTORY）
    */
   public VolcanoPlanner(RelOptCostFactory costFactory, //
       Context externalContext) {
@@ -285,6 +304,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       getPhaseRuleMappingInitializer() {
     return phaseRuleMap -> {
       // Disable all phases except OPTIMIZE by adding one useless rule name.
+      //note: 通过添加一个无用的 rule name 来 disable 优化器的其他三个阶段
       phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS_MDR).add("xxx");
       phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS).add("xxx");
       phaseRuleMap.get(VolcanoPlannerPhase.CLEANUP).add("xxx");
@@ -302,12 +322,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // So now is a good time to tell the metadata layer what to expect.
     registerMetadataRels();
 
+    //note: 注册相应的 RelNode，会做一系列的初始化操作, RelNode 会有对应的 RelSubset
     this.root = registerImpl(rel, null);
     if (this.originalRoot == null) {
       this.originalRoot = rel;
     }
 
     // Making a node the root changes its importance.
+    //note: 计算 root subset 的 importance
     this.ruleQueue.recompute(this.root);
     ensureRootConverters();
   }
@@ -335,6 +357,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   private void registerMaterializations() {
     // Avoid using materializations while populating materializations!
+    //note: 初始化时，如果没有指定 Context 参数，这里就会返回 null
     final CalciteConnectionConfig config =
         context.unwrap(CalciteConnectionConfig.class);
     if (config == null || !config.materializationsEnabled()) {
@@ -384,6 +407,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Finds an expression's equivalence set. If the expression is not
    * registered, returns null.
    *
+   * note: 查找 RelNode 的等价集
    * @param rel Relational expression
    * @return Equivalence set that expression belongs to, or null if it is not
    * registered
@@ -398,10 +422,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return null;
   }
 
+  //note: 添加 RelTraitDef
   @Override public boolean addRelTraitDef(RelTraitDef relTraitDef) {
     return !traitDefs.contains(relTraitDef) && traitDefs.add(relTraitDef);
   }
 
+  //note：清空所有的 RelTrait
   @Override public void clearRelTraitDefs() {
     traitDefs.clear();
   }
@@ -410,6 +436,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return traitDefs;
   }
 
+  //note: 新建一个 traitSet，并将traitDefs原有的 trait 添加进去返回
   @Override public RelTraitSet emptyTraitSet() {
     RelTraitSet traitSet = super.emptyTraitSet();
     for (RelTraitDef traitDef : traitDefs) {
@@ -417,7 +444,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // TODO: restructure RelTraitSet to allow a list of entries
         //  for any given trait
       }
-      traitSet = traitSet.plus(traitDef.getDefault());
+      traitSet = traitSet.plus(traitDef.getDefault()); //note:
     }
     return traitSet;
   }
@@ -442,6 +469,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return ImmutableList.copyOf(ruleSet);
   }
 
+  //note: 添加 rule
   public boolean addRule(RelOptRule rule) {
     if (locked) {
       return false;
@@ -454,6 +482,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     assert added;
 
     final String ruleName = rule.toString();
+    //note: 这里的 ruleNames 允许重复的 key 值，但是这里还是要求 rule description 保持唯一的，与 rule 一一对应
     if (ruleNames.put(ruleName, rule.getClass())) {
       Set<Class> x = ruleNames.get(ruleName);
       if (x.size() > 1) {
@@ -462,11 +491,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
 
+    //note: 注册一个 rule 的 description（保存在 mapDescToRule 中）
     mapRuleDescription(rule);
 
     // Each of this rule's operands is an 'entry point' for a rule call.
     // Register each operand against all concrete sub-classes that could match
     // it.
+    //note: 记录每个 sub-classes 与 operand 的关系（如果能 match 的话，就记录一次）
+    //note: 一个 RelOptRuleOperand 只会有一个 class 与之对应，这里找的是 subclass
     for (RelOptRuleOperand operand : rule.getOperands()) {
       for (Class<? extends RelNode> subClass
           : subClasses(operand.getMatchedClass())) {
@@ -477,12 +509,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // If this is a converter rule, check that it operates on one of the
     // kinds of trait we are interested in, and if so, register the rule
     // with the trait.
+    //note: 对于 ConverterRule 的操作，如果其 ruleTraitDef 类型包含在我们初始化的 traitDefs 中，
+    //note: 就注册这个 converterRule 到 ruleTraitDef 中
+    //note: 如果不包含 ruleTraitDef，这个 ConverterRule 在本次优化的过程中是用不到的
     if (rule instanceof ConverterRule) {
       ConverterRule converterRule = (ConverterRule) rule;
 
       final RelTrait ruleTrait = converterRule.getInTrait();
       final RelTraitDef ruleTraitDef = ruleTrait.getTraitDef();
-      if (traitDefs.contains(ruleTraitDef)) {
+      if (traitDefs.contains(ruleTraitDef)) { //note: 这里注册好像也没有用到
         ruleTraitDef.registerConverterRule(this, converterRule);
       }
     }
@@ -515,6 +550,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return true;
   }
 
+  //note: 注册 RelNode 的 class，如果这个 class 满足 rule 的条件，就注册到 classOperands 中
   @Override protected void onNewClass(RelNode node) {
     super.onNewClass(node);
 
@@ -530,15 +566,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  //note: Changes a relational expression to an equivalent one with a different set of traits.
   public RelNode changeTraits(final RelNode rel, RelTraitSet toTraits) {
     assert !rel.getTraitSet().equals(toTraits);
     assert toTraits.allSimple();
 
+    //note: 注册这个 RelNode
     RelSubset rel2 = ensureRegistered(rel, null);
+    //note: 如果 RelTraitSet 刚好匹配
     if (rel2.getTraitSet().equals(toTraits)) {
       return rel2;
     }
 
+    //note: 如果 RelTraitSet 不匹配，那么就在 RelSet 中新建一个 RelSubset
     return rel2.set.getOrCreateSubset(rel.getCluster(), toTraits.simplify());
   }
 
@@ -550,10 +590,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Finds the most efficient expression to implement the query given via
    * {@link org.apache.calcite.plan.RelOptPlanner#setRoot(org.apache.calcite.rel.RelNode)}.
    *
+   * note：找到最有效率的 relational expression，这个算法包含一系列阶段，每个阶段被触发的 rules 可能不同
    * <p>The algorithm executes repeatedly in a series of phases. In each phase
    * the exact rules that may be fired varies. The mapping of phases to rule
    * sets is maintained in the {@link #ruleQueue}.
    *
+   * note：在每个阶段，planner 都会初始化这个 RelSubset 的 importance，planner 会遍历 rule queue 中 rules 直到：
+   * note：1. rule queue 变为空；
+   * note：2. 对于 ambitious planner，最近 cost 不再提高时（具体来说，第一次找到一个可执行计划时，需要达到需要迭代总数的10%或更大）；
+   * note：3. 对于 non-ambitious planner，当找到一个可执行的计划就行；
    * <p>In each phase, the planner sets the initial importance of the existing
    * RelSubSets ({@link #setInitialImportance()}). The planner then iterates
    * over the rule matches presented by the rule queue until:
@@ -567,6 +612,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * <li>For non-ambitious planners: When an implementable plan is found.</li>
    * </ol>
    *
+   * note：此外，如果每10次迭代之后，没有一个可实现的计划，包含 logical RelNode 的 RelSubSets 将会通过 injectImportanceBoost 给一个 importance；
    * <p>Furthermore, after every 10 iterations without an implementable plan,
    * RelSubSets that contain only logical RelNodes are given an importance
    * boost via {@link #injectImportanceBoost()}. Once an implementable plan is
@@ -577,12 +623,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   public RelNode findBestExp() {
+    //note: 确保 root relational expression 的 subset（RelSubset）在它的等价集（RelSet）中包含所有 RelSubset 的 converter
+    //note: 来保证 planner 从其他的 subsets 找到的实现方案可以转换为 root，否则可能因为 convention 不同，无法实施
     ensureRootConverters();
+    //note: materialized views 相关，这里可以先忽略~
     registerMaterializations();
-    int cumulativeTicks = 0;
+    int cumulativeTicks = 0; //note: 四个阶段通用的变量
+    //note: 不同的阶段，总共四个阶段，实际上只有 OPTIMIZE 这个阶段有效，因为其他阶段不会有 RuleMatch
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
+      //note: 在不同的阶段，初始化 RelSubSets 相应的 importance
+      //note: root 节点往下子节点的 importance 都会被初始化
       setInitialImportance();
 
+      //note: 默认是 VolcanoCost
       RelOptCost targetCost = costFactory.makeHugeCost();
       int tick = 0;
       int firstFiniteTick = -1;
@@ -592,10 +645,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       while (true) {
         ++tick;
         ++cumulativeTicks;
+        //note: 第一次运行是 false，两个不是一个对象，一个是 costFactory.makeHugeCost， 一个是 costFactory.makeInfiniteCost
+        //note: 如果低于目标 cost，这里再重新设置一个新目标、新的 giveUpTick
         if (root.bestCost.isLe(targetCost)) {
+          //note: 本阶段第一次运行，目的是为了调用 clearImportanceBoost 方法，清除相应的 importance 信息
           if (firstFiniteTick < 0) {
             firstFiniteTick = cumulativeTicks;
 
+            //note: 对于那些手动提高 importance 的 RelSubset 进行重新计算
             clearImportanceBoost();
           }
           if (ambitious) {
@@ -603,6 +660,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             // try again. If it took us 1000 iterations to find our
             // first finite plan, give ourselves another 100
             // iterations to reduce the cost by 10%.
+            //note: 设置 target 为当前 best cost 的 0.9，调整相应的目标，再进行优化
             targetCost = root.bestCost.multiplyBy(0.9);
             ++splitCount;
             if (impatient) {
@@ -610,6 +668,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
                 // It's possible pre-processing can create
                 // an implementable plan -- give us some time
                 // to actually optimize it.
+                //note: 有可能在 pre-processing 阶段就实现一个 implementable plan，所以先设置一个值，后面再去优化
                 giveUpTick = cumulativeTicks + 25;
               } else {
                 giveUpTick =
@@ -620,6 +679,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           } else {
             break;
           }
+        //note: 最近没有任何进步（超过 giveUpTick 限制，还没达到目标值），直接采用当前的 best plan
         } else if (cumulativeTicks > giveUpTick) {
           // We haven't made progress recently. Take the current best.
           break;
@@ -631,11 +691,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             this, cumulativeTicks, tick, phase.toString(), root.bestCost);
 
         VolcanoRuleMatch match = ruleQueue.popMatch(phase);
+        //note: 如果没有规则，会直接退出当前的阶段
         if (match == null) {
           break;
         }
 
         assert match.getRule().matches(match);
+        //note: 做相应的规则匹配
         match.onMatch();
 
         // The root may have been merged with another
@@ -643,6 +705,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         root = canonize(root);
       }
 
+      //note: 当期阶段完成，移除 ruleQueue 中记录的 rule-match list
       ruleQueue.phaseCompleted(phase);
     }
     if (LOGGER.isTraceEnabled()) {
@@ -652,6 +715,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       pw.flush();
       LOGGER.trace(sw.toString());
     }
+    //note: 根据 plan 构建其 RelNode 树
     RelNode cheapest = root.buildCheapestPlan(this);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
@@ -672,6 +736,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /** Ensures that the subset that is the root relational expression contains
    * converters to all other subsets in its equivalence set.
    *
+   * note：确保 root relational expression 的 subset 在它的等价集合中包含所有subset 的 converter
    * <p>Thus the planner tries to find cheap implementations of those other
    * subsets, which can then be converted to the root. This is the only place
    * in the plan where explicit converters are required; elsewhere, a consumer
@@ -684,7 +749,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         subsets.add((RelSubset) ((AbstractConverter) rel).getInput());
       }
     }
-    for (RelSubset subset : root.set.subsets) {
+    for (RelSubset subset : root.set.subsets) { //note: RelSubset 是具有同样 trait 属性的等价集合
       final ImmutableList<RelTrait> difference =
           root.getTraitSet().difference(subset.getTraitSet());
       if (difference.size() == 1 && subsets.add(subset)) {
@@ -764,12 +829,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  //note: 设置初始的 importance
   private void setInitialImportance() {
     RelVisitor visitor =
         new RelVisitor() {
           int depth = 0;
           final Set<RelSubset> visitedSubsets = new HashSet<>();
 
+          //note: Visits a node during a traversal.
           public void visit(
               RelNode p,
               int ordinal,
@@ -781,16 +848,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
                 return;
               }
 
-              if (subset != root) {
+              if (subset != root) { //note: 计算 importance，并更新到缓存中
                 Double importance = Math.pow(0.9, (double) depth);
 
                 ruleQueue.updateImportance(subset, importance);
               }
 
-              visitedSubsets.add(subset);
+              visitedSubsets.add(subset); //note: 计算过 importance 的 RelNode 记录下来
 
               depth++;
-              for (RelNode rel : subset.getRels()) {
+              for (RelNode rel : subset.getRels()) { //note: RelSubset 中 rels 都会初始化一下
                 visit(rel, -1, subset);
               }
               depth--;
@@ -806,6 +873,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Finds RelSubsets in the plan that contain only rels of
    * {@link Convention#NONE} and boosts their importance by 25%.
+   * note：将 RelSubsets 的 importance 增加25%，如果 RelSubsets 的 RelNode 的 Convention 是 none 的话
    */
   private void injectImportanceBoost() {
     final Set<RelSubset> requireBoost = new HashSet<>();
@@ -826,6 +894,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Clear all importance boosts.
+   * note：清除所有增加的 importance（这里是空集合，并没有清除）
    */
   private void clearImportanceBoost() {
     Collection<RelSubset> empty = Collections.emptySet();
@@ -833,12 +902,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ruleQueue.boostImportance(empty, 1.0);
   }
 
+  //note: 注册一个 RelNode
   public RelSubset register(
       RelNode rel,
       RelNode equivRel) {
     assert !isRegistered(rel) : "pre: isRegistered(rel)";
     final RelSet set;
-    if (equivRel == null) {
+    if (equivRel == null) { //note: equivRel 为 null 时，设置其 RelSet 为 null，并注册
       set = null;
     } else {
       assert RelOptUtil.equal(
@@ -849,6 +919,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           Litmus.THROW);
       set = getSet(equivRel);
     }
+    //note: 最开始初始化时，这里会循环调用（RelNode 的 input），将 RelNode 全部注册（注册的意思，其实就是做相应的转换和初始化操作）
     final RelSubset subset = registerImpl(rel, set);
 
     // Checking if tree is valid considerably slows down planning
@@ -860,9 +931,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return subset;
   }
 
+  //note: 注册 RelNode
   public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
     final RelSubset subset = getSubset(rel);
-    if (subset != null) {
+    if (subset != null) { //note: 如果该 RelNode 对应的
       if (equivRel != null) {
         final RelSubset equivSubset = getSubset(equivRel);
         if (subset.set != equivSubset.set) {
@@ -870,7 +942,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
       }
       return subset;
-    } else {
+    } else { //note: 还没有注册的情况下，进行注册，实际上就是初始化到
       return register(rel, equivRel);
     }
   }
@@ -931,20 +1003,23 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  //note: Computes the cost of a RelNode.
   public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     assert rel != null : "pre-condition: rel != null";
-    if (rel instanceof RelSubset) {
+    if (rel instanceof RelSubset) { //note: 如果是 RelSubset，证明是已经计算 cost 的 subset
       return ((RelSubset) rel).bestCost;
     }
     if (rel.getTraitSet().getTrait(ConventionTraitDef.INSTANCE)
         == Convention.NONE) {
-      return costFactory.makeInfiniteCost();
+      return costFactory.makeInfiniteCost(); //note: 这种情况下也会返回 infinite Cost
     }
+    //note: 计算其 cost
     RelOptCost cost = mq.getNonCumulativeCost(rel);
-    if (!zeroCost.isLt(cost)) {
+    if (!zeroCost.isLt(cost)) { //note: cost 比0还小的情况
       // cost must be positive, so nudge it
       cost = costFactory.makeTinyCost();
     }
+    //note: RelNode 的 cost 会把其 input 全部加上
     for (RelNode input : rel.getInputs()) {
       cost = cost.plus(getCost(input, mq));
     }
@@ -1119,6 +1194,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return changeTraitsUsingConverters(rel, toTraits, false);
   }
 
+  //note: 检查是否满足 converter
   void checkForSatisfiedConverters(
       RelSet set,
       RelNode rel) {
@@ -1149,6 +1225,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Dumps the internal state of this VolcanoPlanner to a writer.
+   * note: 输出当前 planner 的状态
    *
    * @param pw Print writer
    * @see #normalizePlan(String)
@@ -1181,6 +1258,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return sw.toString();
   }
 
+  //note: 看下 subset 的输出
   private void dumpSets(PrintWriter pw) {
     Ordering<RelSet> ordering = Ordering.from(Comparator.comparingInt(o -> o.id));
     for (RelSet set : ordering.immutableSortedCopy(allSets)) {
@@ -1231,6 +1309,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  //note: Graphviz 的输出
   private void dumpGraphviz(PrintWriter pw) {
     Ordering<RelSet> ordering = Ordering.from(Comparator.comparingInt(o -> o.id));
     Set<RelNode> activeRels = new HashSet<>();
@@ -1390,6 +1469,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Re-computes the digest of a {@link RelNode}.
    *
+   * note: 重新计算 RelNode 的 digest，RelSet 会调用这个方法
+   * note：这个 digest 包含它 children 的 identifiers，如果一个 child 已经 rename（比如其他 Subset 与其他做了 merge） 了，这个值需要重新计算
    * <p>Since a relational expression's digest contains the identifiers of its
    * children, this method needs to be called when the child has been renamed,
    * for example if the child's set merges with another.
@@ -1401,7 +1482,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (fixUpInputs(rel)) {
       final RelNode removed = mapDigestToRel.remove(oldDigest);
       assert removed == rel;
-      final String newDigest = rel.recomputeDigest();
+      final String newDigest = rel.recomputeDigest(); //note: 重新计算
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
       final RelNode equivRel = mapDigestToRel.put(newDigest, rel);
       if (equivRel != null) {
@@ -1504,6 +1585,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Fires all rules matched by a relational expression.
+   * note： 触发满足这个 relational expression 的所有 rules
    *
    * @param rel      Relational expression which has just been created (or maybe
    *                 from the queue)
@@ -1514,9 +1596,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       RelNode rel,
       boolean deferred) {
     for (RelOptRuleOperand operand : classOperands.get(rel.getClass())) {
-      if (operand.matches(rel)) {
+      if (operand.matches(rel)) { //note: rule 匹配的情况
         final VolcanoRuleCall ruleCall;
-        if (deferred) {
+        if (deferred) { //note: 这里默认都是 true，会把 RuleMatch 添加到 queue 中
           ruleCall = new DeferringRuleCall(this, operand);
         } else {
           ruleCall = new VolcanoRuleCall(this, operand);
@@ -1570,6 +1652,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Merge.
+    //note: merge 操作
     set.mergeWith(this, set2);
 
     // Was the set we merged with the root? If so, the result is the new
@@ -1618,6 +1701,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * equivalence set. If an identical expression is already registered, we
    * don't need to register this one and nor should we queue up rule matches.
    *
+   * note：注册一个新的 expression；对 rule match 进行排队；
+   * note：如果 set 不为 null，那么就使 expression 成为等价集合（RelSet）的一部分
+   * note：rel：必须是 RelSubset 或者未注册的 RelNode
    * @param rel relational expression to register. Must be either a
    *         {@link RelSubset}, or an unregistered {@link RelNode}
    * @param set set that rel belongs to, or <code>null</code>
@@ -1626,19 +1712,22 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private RelSubset registerImpl(
       RelNode rel,
       RelSet set) {
-    if (rel instanceof RelSubset) {
-      return registerSubset(set, (RelSubset) rel);
+    if (rel instanceof RelSubset) { //note: 如果是 RelSubset 类型，已经注册过了
+      return registerSubset(set, (RelSubset) rel); //note: 做相应的 merge
     }
 
     assert !isRegistered(rel) : "already been registered: " + rel;
-    if (rel.getCluster().getPlanner() != this) {
+    if (rel.getCluster().getPlanner() != this) { //note: cluster 中 planner 与这里不同
       throw new AssertionError("Relational expression " + rel
           + " belongs to a different planner than is currently being used.");
     }
 
     // Now is a good time to ensure that the relational expression
     // implements the interface required by its calling convention.
+    //note: 确保 relational expression 可以实施其 calling convention 所需的接口
+    //note: 获取 RelNode 的 RelTraitSet
     final RelTraitSet traits = rel.getTraitSet();
+    //note: 获取其 ConventionTraitDef
     final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
     assert convention != null;
     if (!convention.getInterface().isInstance(rel)
@@ -1655,12 +1744,17 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Ensure that its sub-expressions are registered.
+    //note: 其实现在 AbstractRelNode 对应的方法中，实际上调用的还是 ensureRegistered 方法进行注册
+    //note: 将 RelNode 的所有 inputs 注册到 planner 中
+    //note: 这里会递归调用 registerImpl 注册 relNode 与 RelSet，直到其 inputs 全部注册
+    //note: 返回的是一个 RelSubset 类型
     rel = rel.onRegister(this);
 
     // Record its provenance. (Rule call may be null.)
-    if (ruleCallStack.isEmpty()) {
+    //note: 记录 RelNode 的来源
+    if (ruleCallStack.isEmpty()) { //note: 不知道来源时
       provenanceMap.put(rel, Provenance.EMPTY);
-    } else {
+    } else { //note: 来自 rule 触发的情况
       final VolcanoRuleCall ruleCall = ruleCallStack.peek();
       provenanceMap.put(
           rel,
@@ -1672,18 +1766,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // If it is equivalent to an existing expression, return the set that
     // the equivalent expression belongs to.
+    //note: 根据 RelNode 的 digest（摘要，全局唯一）判断其是否已经有对应的 RelSubset，有的话直接放回
     String key = rel.getDigest();
     RelNode equivExp = mapDigestToRel.get(key);
-    if (equivExp == null) {
+    if (equivExp == null) { //note: 还没注册的情况
       // do nothing
-    } else if (equivExp == rel) {
+    } else if (equivExp == rel) {//note: 已经有其缓存信息
       return getSubset(rel);
     } else {
       assert RelOptUtil.equal(
           "left", equivExp.getRowType(),
           "right", rel.getRowType(),
           Litmus.THROW);
-      RelSet equivSet = getSet(equivExp);
+      RelSet equivSet = getSet(equivExp); //note: 有 RelSubset 但对应的 RelNode 不同时，这里对其 RelSet 做下 merge
       if (equivSet != null) {
         LOGGER.trace(
             "Register: rel#{} is equivalent to {}", rel.getId(), equivExp.getDescription());
@@ -1691,7 +1786,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
 
-    // Converters are in the same set as their children.
+    //note： Converters are in the same set as their children.
     if (rel instanceof Converter) {
       final RelNode input = ((Converter) rel).getInput();
       final RelSet childSet = getSet(input);
@@ -1736,6 +1831,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Place the expression in the appropriate equivalence set.
+    //note: 把 expression 放到合适的 等价集 中
+    //note: 如果 RelSet 不存在，这里会初始化一个 RelSet
     if (set == null) {
       set = new RelSet(
           nextSetId++,
@@ -1748,6 +1845,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Chain to find 'live' equivalent set, just in case several sets are
     // merging at the same time.
+    //note: 递归查询，一直找到最开始的 语义相等的集合，防止不同集合同时被 merge
     while (set.equivalentSet != null) {
       set = set.equivalentSet;
     }
@@ -1756,9 +1854,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     registerClass(rel);
 
     registerCount++;
+    //note: 初始时是 0
     final int subsetBeforeCount = set.subsets.size();
+    //note: 向等价集中添加相应的 RelNode，并更新其 best 信息
     RelSubset subset = addRelToSet(rel, set);
 
+    //note: 缓存相关信息，返回的 key 之前对应的 value
     final RelNode xx = mapDigestToRel.put(key, rel);
     assert xx == null || xx == rel : rel.getDigest();
 
@@ -1772,37 +1873,46 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Create back-links from its children, which makes children more
     // important.
+    //note: 如果是 root，初始化其 importance 为 1.0
     if (rel == this.root) {
       ruleQueue.subsetImportances.put(
           subset,
           1.0); // todo: remove
     }
+    //note: 将 Rel 的 input 对应的 RelSubset 的 parents 设置为当前的 Rel
+    //note: 也就是说，一个 RelNode 的 input 为其对应 RelSubset 的 children 节点
     for (RelNode input : rel.getInputs()) {
       RelSubset childSubset = (RelSubset) input;
       childSubset.set.parents.add(rel);
 
       // Child subset is more important now a new parent uses it.
+      //note: 重新计算 RelSubset 的 importance
       ruleQueue.recompute(childSubset);
     }
-    if (rel == this.root) {
+    if (rel == this.root) {// TODO: 2019-03-11 这里为什么要删除呢？
       ruleQueue.subsetImportances.remove(subset);
     }
 
     // Remember abstract converters until they're satisfied
+    //note: 如果是 AbstractConverter 示例，添加到 abstractConverters 集合中
     if (rel instanceof AbstractConverter) {
       set.abstractConverters.add((AbstractConverter) rel);
     }
 
     // If this set has any unsatisfied converters, try to satisfy them.
+    //note: check set.abstractConverters
     checkForSatisfiedConverters(set, rel);
 
     // Make sure this rel's subset importance is updated
+    //note: 强制更新（重新计算） subset 的 importance
     ruleQueue.recompute(subset, true);
 
+    //note: 触发所有匹配的 rule，这里是添加到对应的 RuleQueue 中
     // Queue up all rules triggered by this relexp's creation.
     fireRules(rel, true);
 
     // It's a new subset.
+    //note: 如果是一个 new subset，再做一次触发
     if (set.subsets.size() > subsetBeforeCount) {
       fireRules(subset, true);
     }
@@ -1810,6 +1920,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return subset;
   }
 
+  //note: 向等价集中添加相应的 RelNode，并更新其 best 信息
   private RelSubset addRelToSet(RelNode rel, RelSet set) {
     RelSubset subset = set.add(rel);
     mapRel2Subset.put(rel, subset);
@@ -1820,12 +1931,18 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // 100. We think this happens because the back-links to parents are
     // not established. So, give the subset another change to figure out
     // its cost.
+    //note: 当一个 RelNode tree 注册之后，有些情况下 nodes' cost 提高，但 subset 并不知道
+    //note: 因为前面的 add 操作并没有触发 cost 计算操作，所以 subset 并不知道其 cost 是否已经进行了相应的优化
+    //note: 这是可能发生的，因为现在它跟父节点的连接还没有建起来，所以，这里触发一下 subset，让其计算它的 cost
+    //note：按照前面的调用顺序，这里会先调用其子节点（root 节点查找相应的 input 节点）
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    //note: 向 RelSet 中添加完 RelNode 之后，这里会重新计算其 Cost 信息
     subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
 
     return subset;
   }
 
+  //note: 注册 RelSubset，做相应的 merge
   private RelSubset registerSubset(
       RelSet set,
       RelSubset subset) {
@@ -1952,12 +2069,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     /**
      * Rather than invoking the rule (as the base method does), creates a
      * {@link VolcanoRuleMatch} which can be invoked later.
+     * note：不是直接触发 rule，而是创建一个后续可以被触发的 VolcanoRuleMatch
      */
     protected void onMatch() {
       final VolcanoRuleMatch match =
           new VolcanoRuleMatch(
               volcanoPlanner,
-              getOperand0(),
+              getOperand0(), //note: 其实就是 operand
               rels,
               nodeInputs);
       volcanoPlanner.ruleQueue.addMatch(match);
@@ -1974,12 +2092,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * We do not know where this RelNode came from. Probably created by hand,
    * or by sql-to-rel converter.
+   * note：不知道来源时
    */
   private static class UnknownProvenance extends Provenance {
   }
 
   /**
    * A RelNode that came directly from another RelNode via a copy.
+   * note：来自直接另一个 RelNode 的 copy
    */
   static class DirectProvenance extends Provenance {
     final RelNode source;
@@ -1991,6 +2111,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * A RelNode that came via the firing of a rule.
+   * note：来自 rule 的触发，记录相关的信息
    */
   static class RuleProvenance extends Provenance {
     final RelOptRule rule;

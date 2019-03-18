@@ -58,6 +58,7 @@ import java.util.TimeZone;
 /**
  * Constant value in a row-expression.
  *
+ * note: 行 expression 中的常量值
  * <p>There are several methods for creating literals in {@link RexBuilder}:
  * {@link RexBuilder#makeLiteral(boolean)} and so forth.</p>
  *

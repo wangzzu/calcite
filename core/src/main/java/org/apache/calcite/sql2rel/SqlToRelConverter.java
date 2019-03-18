@@ -209,6 +209,7 @@ import static org.apache.calcite.sql.SqlUtil.stripAs;
  * {@link org.apache.calcite.sql.SqlNode} objects) into a relational algebra
  * expression (consisting of {@link org.apache.calcite.rel.RelNode} objects).
  *
+ * note：把sql AST转换成关系代数表达式
  * <p>The public entry points are: {@link #convertQuery},
  * {@link #convertExpression(SqlNode)}.
  */
@@ -302,6 +303,7 @@ public class SqlToRelConverter {
   }
 
   /* Creates a converter. */
+  //note: 创建 converter 实例
   public SqlToRelConverter(
       RelOptTable.ViewExpander viewExpander,
       SqlValidator validator,
@@ -426,6 +428,7 @@ public class SqlToRelConverter {
     if (query.isA(SqlKind.DML)) {
       return;
     }
+    //note: 检查从 sql 到关系代数的 conversion 不会影响到 type information
     // Verify that conversion from SQL to relational algebra did
     // not perturb any type information.  (We can't do this if the
     // SQL statement is something like an INSERT which has no
@@ -444,6 +447,7 @@ public class SqlToRelConverter {
     final RelDataType convertedRowType =
         validator.getTypeFactory().createStructType(convertedFields);
 
+    //note: 判断两个 List<RelDataTypeField> 是否相等，要求它们都不为 null
     if (!RelOptUtil.equal("validated row type", validatedRowType,
         "converted row type", convertedRowType, Litmus.IGNORE)) {
       throw new AssertionError("Conversion to relational algebra failed to "
@@ -539,7 +543,7 @@ public class SqlToRelConverter {
 
   /**
    * Converts an unvalidated query's parse tree into a relational expression.
-   *
+   * note：把一个 parser tree 转换为 relational expression
    * @param query           Query to convert
    * @param needsValidation Whether to validate the query before converting;
    *                        <code>false</code> if the query has already been
@@ -552,24 +556,27 @@ public class SqlToRelConverter {
       SqlNode query,
       final boolean needsValidation,
       final boolean top) {
-    if (needsValidation) {
+    if (needsValidation) { //note: 是否需要做相应的校验（如果校验过了，这里就不需要了）
       query = validator.validate(query);
     }
 
+    //note: 设置 MetadataProvider
     RelMetadataQuery.THREAD_PROVIDERS.set(
         JaninoRelMetadataProvider.of(cluster.getMetadataProvider()));
+    //note: 得到 RelNode(relational expression)
     RelNode result = convertQueryRecursive(query, top, null).rel;
     if (top) {
-      if (isStream(query)) {
+      if (isStream(query)) {//note: 如果 stream 的话
         result = new LogicalDelta(cluster, result.getTraitSet(), result);
       }
     }
     RelCollation collation = RelCollations.EMPTY;
-    if (!query.isA(SqlKind.DML)) {
-      if (isOrdered(query)) {
+    if (!query.isA(SqlKind.DML)) { //note: 如果是 DML 语句
+      if (isOrdered(query)) { //note: 如果需要做排序的话
         collation = requiredCollation(result);
       }
     }
+    //note: 对转换前后的 RelDataType 做验证
     checkConvertedType(query, result);
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
@@ -584,14 +591,16 @@ public class SqlToRelConverter {
         .withCollation(collation);
   }
 
+  //note: 如果 stream 的 select 语句
   private static boolean isStream(SqlNode query) {
     return query instanceof SqlSelect
         && ((SqlSelect) query).isKeywordPresent(SqlSelectKeyword.STREAM);
   }
 
+  //note: 判断是否需要排序运算
   public static boolean isOrdered(SqlNode query) {
     switch (query.getKind()) {
-    case SELECT:
+    case SELECT: //note: 对于 select，有 order 排序字段
       return ((SqlSelect) query).getOrderList() != null
           && ((SqlSelect) query).getOrderList().size() > 0;
     case WITH:
@@ -618,11 +627,12 @@ public class SqlToRelConverter {
 
   /**
    * Converts a SELECT statement's parse tree into a relational expression.
+   * note：将一个 Select parse tree 转换成一个关系表达式
    */
   public RelNode convertSelect(SqlSelect select, boolean top) {
     final SqlValidatorScope selectScope = validator.getWhereScope(select);
     final Blackboard bb = createBlackboard(selectScope, null, top);
-    convertSelectImpl(bb, select);
+    convertSelectImpl(bb, select);//note: 做相应的转换
     return bb.root;
   }
 
@@ -641,15 +651,18 @@ public class SqlToRelConverter {
   protected void convertSelectImpl(
       final Blackboard bb,
       SqlSelect select) {
+    //note: convertFrom
     convertFrom(
         bb,
         select.getFrom());
+    //note: convertWhere
     convertWhere(
         bb,
         select.getWhere());
 
     final List<SqlNode> orderExprList = new ArrayList<>();
     final List<RelFieldCollation> collationList = new ArrayList<>();
+    //note: 有 order by 操作时
     gatherOrderExprs(
         bb,
         select,
@@ -660,20 +673,22 @@ public class SqlToRelConverter {
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
     if (validator.isAggregate(select)) {
+      //note: 当有聚合操作时，也就是含有 group by、having 或者 Select 和 order by 中含有聚合函数
       convertAgg(
           bb,
           select,
           orderExprList);
-    } else {
+    } else { //note: 对 select list 部分的处理
       convertSelectList(
           bb,
           select,
           orderExprList);
     }
 
-    if (select.isDistinct()) {
+    if (select.isDistinct()) { //note: select 后面含有 DISTINCT 关键字时（去重）
       distinctify(bb, true);
     }
+    //note: Converts a query's ORDER BY clause, if any.
     convertOrder(
         select, bb, collation, orderExprList, select.getOffset(),
         select.getFetch());
@@ -1928,10 +1943,11 @@ public class SqlToRelConverter {
 
   /**
    * Converts a FROM clause into a relational expression.
-   *
+   * note：把 from 变成一个 relational expression
    * @param bb   Scope within which to resolve identifiers
    * @param from FROM clause of a query. Examples include:
    *
+   * note：可能有下面几种情况：
    *             <ul>
    *             <li>a single table ("SALES.EMP"),
    *             <li>an aliased table ("EMP AS E"),
@@ -2034,8 +2050,8 @@ public class SqlToRelConverter {
               ((DelegatingScope) bb.scope).getParent());
       final Blackboard rightBlackboard =
           createBlackboard(rightScope, null, false);
-      convertFrom(leftBlackboard, left);
-      RelNode leftRel = leftBlackboard.root;
+      convertFrom(leftBlackboard, left); //note: 做相应的转换
+      RelNode leftRel = leftBlackboard.root; //note: left RelNode
       convertFrom(rightBlackboard, right);
       RelNode rightRel = rightBlackboard.root;
       JoinRelType convertedJoinType = convertJoinType(joinType);
@@ -3065,6 +3081,7 @@ public class SqlToRelConverter {
 
   /**
    * Recursively converts a query to a relational expression.
+   * note：递归地讲一个 query 转换为 relational expression
    *
    * @param query         Query
    * @param top           Whether this query is the top-level query of the
@@ -4185,7 +4202,7 @@ public class SqlToRelConverter {
     /**
      * Sets a new root relational expression, as the translation process
      * backs its way further up the tree.
-     *
+     * note: 设置 root relational expression
      * @param root New root relational expression
      * @param leaf Whether the relational expression is a leaf, that is,
      *             derived from an atomic relational expression such as a table

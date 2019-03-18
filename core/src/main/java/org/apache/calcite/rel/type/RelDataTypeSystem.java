@@ -25,6 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * in the default system, a DECIMAL can have maximum precision 19, but Hive
  * overrides to 38.
  *
+ * note: 类型系统
  * <p>The default implementation is {@link #DEFAULT}.
  */
 public interface RelDataTypeSystem {

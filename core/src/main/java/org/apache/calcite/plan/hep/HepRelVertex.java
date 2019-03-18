@@ -30,6 +30,7 @@ import java.util.List;
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
  * the entire query expression.
+ * note：HepRelVertex 将一个 RelNode 封装为一个 DAG 中的 vertex（DAG 代表整个 query expression）
  */
 public class HepRelVertex extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------

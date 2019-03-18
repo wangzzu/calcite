@@ -28,6 +28,8 @@ import java.lang.reflect.Method;
  * be called directly in most contexts; instead, use a strongly-typed facade
  * such as {@link RelMetadataQuery}.
  *
+ * note: 定义一个用于获取关系表达式元数据的接口
+ *
  * <p>For background and motivation, see <a
  * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
  *
@@ -42,6 +44,7 @@ public interface RelMetadataProvider {
    * Retrieves metadata of a particular type and for a particular sub-class
    * of relational expression.
    *
+   * note: 检索关系表达式子类和特定类型的元数据，返回的是一个函数，它可以在指定的关系表达式上应用来创建一个 metadata 对象
    * <p>The object returned is a function. It can be applied to a relational
    * expression of the given type to create a metadata object.</p>
    *

@@ -430,6 +430,7 @@ public abstract class SqlAbstractParserImpl {
    * @param reader provides new input
    */
   // CHECKSTYLE: IGNORE 1
+  //note: 更新输入
   public abstract void ReInit(Reader reader);
 
   /**

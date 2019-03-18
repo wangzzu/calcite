@@ -28,6 +28,7 @@ import java.util.List;
 /**
  * Placeholder for an unresolved function.
  *
+ * note：未解析的函数占位符，由parser创建，它会被重写为一个正确的SqlFunction
  * <p>Created by the parser, then it is rewritten to proper SqlFunction by
  * the validator to a function defined in a Calcite schema.</p>
  */

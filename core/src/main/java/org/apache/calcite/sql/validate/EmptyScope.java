@@ -49,6 +49,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Deviant implementation of {@link SqlValidatorScope} for the top of the scope
  * stack.
  *
+ * note: 对于栈顶，关于 SqlValidatorScope 的实现，这个是简单，因为他不需要检查其父节点
  * <p>It is convenient, because we never need to check whether a scope's parent
  * is null. (This scope knows not to ask about its parents, just like Adam.)
  */

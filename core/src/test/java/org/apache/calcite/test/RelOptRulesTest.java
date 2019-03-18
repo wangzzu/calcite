@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+//note: 各个 rules 测试 case，值得看一下
+
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -1705,6 +1707,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "where d.deptno > 3) where ename LIKE 'bar'");
   }
 
+  //note: 减少常量的测试
   @Test public void testReduceConstants() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)

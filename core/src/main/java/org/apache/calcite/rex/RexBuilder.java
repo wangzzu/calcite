@@ -100,6 +100,7 @@ public class RexBuilder {
   /**
    * Creates a RexBuilder.
    *
+   * note: 行表达式代 一些常见的字符值会被缓存 (NULL, TRUE, FALSE, 0, 1, '') are cached
    * @param typeFactory Type factory
    */
   public RexBuilder(RelDataTypeFactory typeFactory) {

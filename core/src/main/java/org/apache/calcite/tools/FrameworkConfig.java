@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableList;
  * Interface that describes how to configure planning sessions generated
  * using the Frameworks tools.
  *
+ * note: 描述如果使用 Frameworks tools来配置planning sessions
  * @see Frameworks#newConfigBuilder()
  */
 public interface FrameworkConfig {

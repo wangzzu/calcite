@@ -56,6 +56,8 @@ import java.util.stream.Collectors;
  * Subset of an equivalence class where all relational expressions have the
  * same physical properties.
  *
+ * note：等价类的子集，其中所有的 relational expression 具有同样物理属性的等价集
+ *
  * <p>Physical properties are instances of the {@link RelTraitSet}, and consist
  * of traits such as calling convention and collation (sort-order).
  *
@@ -77,6 +79,7 @@ public class RelSubset extends AbstractRelNode {
 
   /**
    * cost of best known plan (it may have improved since)
+   * note: 已知最佳 plan 的 cost
    */
   RelOptCost bestCost;
 
@@ -87,20 +90,24 @@ public class RelSubset extends AbstractRelNode {
 
   /**
    * best known plan
+   * note: 已知的最佳 plan
    */
   RelNode best;
 
   /**
    * Timestamp for metadata validity
+   * note: metadata 有效性的时间戳
    */
   long timestamp;
 
   /**
    * Flag indicating whether this RelSubset's importance was artificially
    * boosted.
+   * note: 标志这个 RelSubset 的 importance 是否是人为地提高了
    */
   boolean boosted;
 
+  //note: AbstractRelNode 中的 traitSet 描述了物理属性
   //~ Constructors -----------------------------------------------------------
 
   RelSubset(
@@ -111,14 +118,16 @@ public class RelSubset extends AbstractRelNode {
     this.set = set;
     this.boosted = false;
     assert traits.allSimple();
-    computeBestCost(cluster.getPlanner());
-    recomputeDigest();
+    computeBestCost(cluster.getPlanner()); //note: 计算 best
+    recomputeDigest(); //note: 计算 digest
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /**
    * Computes the best {@link RelNode} in this subset.
+   * note：计算 subset 中最佳的 RelNode，只有在 Subset 创建时才需要
+   * note: 如果创建时，发现  getRels() 的返回值为 null 的话，这里就无法计算 bestCost 了
    *
    * <p>Only necessary when a subset is created in a set that has subsets that
    * subsume it. Rationale:</p>
@@ -261,6 +270,7 @@ public class RelSubset extends AbstractRelNode {
 
   /**
    * Adds expression <code>rel</code> to this subset.
+   * note：向 subset 添加一个 expression
    */
   void add(RelNode rel) {
     if (set.rels.contains(rel)) {
@@ -284,7 +294,7 @@ public class RelSubset extends AbstractRelNode {
       RelOptUtil.equal("rowtype of new rel", rel.getRowType(),
           "rowtype of set", getRowType(), Litmus.THROW);
     }
-    set.addInternal(rel);
+    set.addInternal(rel); //note: 添加相应的 RelNode
     if (false) {
       Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
       Set<CorrelationId> variablesStopped = rel.getVariablesSet();
@@ -298,6 +308,7 @@ public class RelSubset extends AbstractRelNode {
 
   /**
    * Recursively builds a tree consisting of the cheapest plan at each node.
+   * note：根据每个 node 的 the cheapest plan，构建一个 RelNode 树
    */
   RelNode buildCheapestPlan(VolcanoPlanner planner) {
     CheapestPlanReplacer replacer = new CheapestPlanReplacer(planner);
@@ -318,6 +329,7 @@ public class RelSubset extends AbstractRelNode {
    * Checks whether a relexp has made its subset cheaper, and if it so,
    * recursively checks whether that subset's parents have gotten cheaper.
    *
+   * note：检查一个 relational expression 是否使得 subset 更 cheap（如果是的话，就递归检查其父节点）
    * @param planner   Planner
    * @param mq        Metadata query
    * @param rel       Relational expression whose cost has improved
@@ -326,7 +338,7 @@ public class RelSubset extends AbstractRelNode {
   void propagateCostImprovements(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet) {
     for (RelSubset subset : set.subsets) {
-      if (rel.getTraitSet().satisfies(subset.traitSet)) {
+      if (rel.getTraitSet().satisfies(subset.traitSet)) { //note: traitSet 匹配的情况
         subset.propagateCostImprovements0(planner, mq, rel, activeSet);
       }
     }
@@ -340,12 +352,13 @@ public class RelSubset extends AbstractRelNode {
       // This subset is already in the chain being propagated to. This
       // means that the graph is cyclic, and therefore the cost of this
       // relational expression - not this subset - must be infinite.
+      //note: subset 已经在 activeSet 中，证明 subset 产生了依赖循环
       LOGGER.trace("cyclic: {}", this);
       return;
     }
     try {
       final RelOptCost cost = planner.getCost(rel, mq);
-      if (cost.isLt(bestCost)) {
+      if (cost.isLt(bestCost)) { //note: cost 减少，更新 best 记录
         LOGGER.trace("Subset cost improved: subset [{}] cost was {} now {}", this, bestCost, cost);
 
         bestCost = cost;
@@ -353,11 +366,12 @@ public class RelSubset extends AbstractRelNode {
 
         // Lower cost means lower importance. Other nodes will change
         // too, but we'll get to them later.
+        //note: 重新计算指定的 RelSubset 的 importance
         planner.ruleQueue.recompute(this);
         for (RelNode parent : getParents()) {
           final RelSubset parentSubset = planner.getSubset(parent);
           parentSubset.propagateCostImprovements(planner, mq, parent,
-              activeSet);
+              activeSet); //note: 检查父节点
         }
         planner.checkForSatisfiedConverters(set, rel);
       }
@@ -366,6 +380,7 @@ public class RelSubset extends AbstractRelNode {
     }
   }
 
+  //note: 重新计算 RelSubset 的 improtance，如果boosted 为 true，设置为 false，并递归处理其 parent Subset
   public void propagateBoostRemoval(VolcanoPlanner planner) {
     planner.ruleQueue.recompute(this);
 
@@ -509,7 +524,7 @@ public class RelSubset extends AbstractRelNode {
       if (p instanceof RelSubset) {
         RelSubset subset = (RelSubset) p;
         RelNode cheapest = subset.best;
-        if (cheapest == null) {
+        if (cheapest == null) { //note: 没有找到最佳 plan
           // Dump the planner's expression pool so we can figure
           // out why we reached impasse.
           StringWriter sw = new StringWriter();
@@ -528,7 +543,7 @@ public class RelSubset extends AbstractRelNode {
           pw.print(".");
           DeadEndFinder finder = new DeadEndFinder();
           finder.visit(subset);
-          if (finder.deadEnds.isEmpty()) {
+          if (finder.deadEnds.isEmpty()) { //note:
             pw.print(" All the inputs have relevant nodes, however the cost is still infinite.");
           } else {
             Map<String, Long> problemCounts =
@@ -584,12 +599,13 @@ public class RelSubset extends AbstractRelNode {
           planner.dump(pw);
           pw.flush();
           final String dump = sw.toString();
+          //note: 抛出异常
           RuntimeException e =
               new RelOptPlanner.CannotPlanException(dump);
           LOGGER.trace("Caught exception in class={}, method=visit", getClass().getName(), e);
           throw e;
         }
-        p = cheapest;
+        p = cheapest; //note: 这里已经是获取得 RelSubset 对应的 RelNode（best plan）
       }
 
       if (ordinal != -1) {
@@ -605,7 +621,7 @@ public class RelSubset extends AbstractRelNode {
       List<RelNode> oldInputs = p.getInputs();
       List<RelNode> inputs = new ArrayList<>();
       for (int i = 0; i < oldInputs.size(); i++) {
-        RelNode oldInput = oldInputs.get(i);
+        RelNode oldInput = oldInputs.get(i); //note: 相应的 input 也是 RelSubset
         RelNode input = visit(oldInput, i, p);
         inputs.add(input);
       }

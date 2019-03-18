@@ -23,6 +23,7 @@ import java.util.List;
 /**
  * Description of the physical ordering of a relational expression.
  *
+ * 描述一个关系表达式的物理顺序
  * <p>An ordering consists of a list of one or more column ordinals and the
  * direction of the ordering.
  */
@@ -31,6 +32,7 @@ public interface RelCollation extends RelMultipleTrait {
 
   /**
    * Returns the ordinals and directions of the columns in this ordering.
+   * note：返回要进行排序的字段信息
    */
   List<RelFieldCollation> getFieldCollations();
 }

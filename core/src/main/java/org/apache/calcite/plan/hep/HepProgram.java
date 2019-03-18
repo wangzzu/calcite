@@ -25,6 +25,7 @@ import java.util.List;
  * {@link HepPlanner}. Use {@link HepProgramBuilder} to create a new
  * instance of HepProgram.
  *
+ * note：HepProgram 确定了 HepPlanner 使用的 rule 顺序
  * <p>Note that the structure of a program is immutable, but the planner uses it
  * as read/write during planning, so a program can only be in use by a single
  * planner at a time.
@@ -41,9 +42,9 @@ public class HepProgram {
 
   final ImmutableList<HepInstruction> instructions;
 
-  int matchLimit;
+  int matchLimit;//note: 优化的次数限制
 
-  HepMatchOrder matchOrder;
+  HepMatchOrder matchOrder;//note: Rule 的执行顺序，默认 DEPTH_FIRST
 
   HepInstruction.EndGroup group;
 
@@ -66,7 +67,7 @@ public class HepProgram {
 
   void initialize(boolean clearCache) {
     matchLimit = MATCH_UNTIL_FIXPOINT;
-    matchOrder = HepMatchOrder.DEPTH_FIRST;
+    matchOrder = HepMatchOrder.DEPTH_FIRST;//note: 默认是深度优先
     group = null;
 
     for (HepInstruction instruction : instructions) {

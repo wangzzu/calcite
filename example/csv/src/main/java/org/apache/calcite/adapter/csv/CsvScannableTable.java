@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Table based on a CSV file.
  *
+ * note: 依赖csv文件构建表
  * <p>It implements the {@link ScannableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext)} method.
  */

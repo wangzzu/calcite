@@ -26,6 +26,8 @@ import com.google.common.collect.Interners;
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
  * RelTraitDef may be singletons under the following conditions:
  *
+ * note：RelTraitDef 表示 RelTrait 的一类，在下面的情况下，RelTraitDef可能是单例的：
+ * note：如果这个 RelTraitDef 的所有 RelTraits 都是不变且有限的（比如：可能在编译器就确定的）
  * <ol>
  * <li>if the set of all possible associated RelTraits is finite and fixed (e.g.
  * all RelTraits for this RelTraitDef are known at compile time). For example,
@@ -160,6 +162,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * {@link ConverterRule} with a {@link RelOptPlanner}. The default
    * implementation does nothing.
    *
+   * note：默认实现什么都不做，当向 RelOptPlanner 注册 ConverterRule 时，提供相应的通知
    * @param planner       the planner registering the rule
    * @param converterRule the registered converter rule
    */

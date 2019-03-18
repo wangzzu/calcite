@@ -1379,6 +1379,7 @@ public enum SqlKind {
   }
 
   @SafeVarargs
+  //note: 将数组合并
   private static <E extends Enum<E>> EnumSet<E> concat(EnumSet<E> set0,
       EnumSet<E>... sets) {
     EnumSet<E> set = set0.clone();

@@ -37,6 +37,7 @@ import java.util.function.Predicate;
  *
  * <p>The optimizer figures out which rules are applicable, then calls
  * {@link #onMatch} on each of them.</p>
+ * note：rules，把一个 expression 转移成另一个
  */
 public abstract class RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -70,6 +71,7 @@ public abstract class RelOptRule {
   /**
    * Creates a rule.
    *
+   * note：创建一个 rule，会给构造器传入一个 RelOptRuleOperand 实例
    * @param operand root operand, must not be null
    */
   public RelOptRule(RelOptRuleOperand operand) {
@@ -105,7 +107,7 @@ public abstract class RelOptRule {
           + "' is not valid");
     }
     this.description = description;
-    this.operands = flattenOperands(operand);
+    this.operands = flattenOperands(operand); //note: 在这里初始化的时候，会将 operand 与 rule 关联起来
     assignSolveOrder();
   }
 
@@ -267,6 +269,7 @@ public abstract class RelOptRule {
   /**
    * Creates a list of child operands that matches child relational
    * expressions in the order they appear.
+   * note：some 指的是必须按顺序匹配
    *
    * @param first First child operand
    * @param rest  Remaining child operands (may be empty)
@@ -361,6 +364,7 @@ public abstract class RelOptRule {
   /**
    * Adds the operand and its descendants to the list in prefix order.
    *
+   * note: 将 parentOperand 所有的 child operand （递归进行）添加到 operands 中
    * @param operandList   Flattened list of operands
    * @param parentOperand Parent of this operand
    */
@@ -457,6 +461,7 @@ public abstract class RelOptRule {
   /**
    * Returns whether this rule could possibly match the given operands.
    *
+   * note: 通过operands进行匹配
    * <p>This method is an opportunity to apply side-conditions to a rule. The
    * {@link RelOptPlanner} calls this method after matching all operands of
    * the rule, and before calling {@link #onMatch(RelOptRuleCall)}.
@@ -500,6 +505,7 @@ public abstract class RelOptRule {
    * called, {@link RelOptRuleCall#rels call.rels} holds the set of relational
    * expressions which match the operands to the rule; <code>
    * call.rels[0]</code> is the root expression.
+   * note: 接收到一个 rule match 的 notification
    *
    * <p>Typically a rule would check that the nodes are valid matches, creates
    * a new expression, then calls back {@link RelOptRuleCall#transformTo} to
@@ -545,6 +551,8 @@ public abstract class RelOptRule {
   /**
    * Converts a relation expression to a given set of traits, if it does not
    * already have those traits.
+   *
+   * note：Changes a relational expression to an equivalent one with a different set of traits.
    *
    * @param rel      Relational expression to convert
    * @param toTraits desired traits
@@ -654,7 +662,7 @@ public abstract class RelOptRule {
       // Don't apply converters to converters that operate
       // on the same RelTraitDef -- otherwise we get
       // an n^2 effect.
-      if (rel instanceof Converter) {
+      if (rel instanceof Converter) { //note: ConverterRule 不能应用在 converter 上
         if (((ConverterRule) getRule()).getTraitDef()
             == ((Converter) rel).getTraitDef()) {
           return false;

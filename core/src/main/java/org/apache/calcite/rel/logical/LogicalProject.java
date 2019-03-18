@@ -49,7 +49,7 @@ public final class LogicalProject extends Project {
    *
    * @param cluster  Cluster this relational expression belongs to
    * @param traitSet Traits of this relational expression
-   * @param input    Input relational expression
+   * @param input    Input relational expression note: 指明输入源，其实指的是树上的子节点
    * @param projects List of expressions for the input columns
    * @param rowType  Output row type
    */

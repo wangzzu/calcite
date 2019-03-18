@@ -24,6 +24,7 @@ import java.util.Objects;
  * Definition of the ordering of one field of a {@link RelNode} whose
  * output is to be sorted.
  *
+ * note：定义 RelNode 的一个字段（需要按照该字段进行排序）
  * @see RelCollation
  */
 public class RelFieldCollation {
@@ -170,6 +171,7 @@ public class RelFieldCollation {
 
   /**
    * 0-based index of field being sorted.
+   * note：field 的索引
    */
   private final int fieldIndex;
 

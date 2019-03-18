@@ -133,6 +133,7 @@ public abstract class ConverterRule extends RelOptRule {
     return false;
   }
 
+  //note: 如果规则匹配的话，这个方法将会调用
   public void onMatch(RelOptRuleCall call) {
     RelNode rel = call.rel(0);
     if (rel.getTraitSet().contains(inTrait)) {

@@ -50,6 +50,7 @@ import java.util.Set;
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
  * which have not yet been acted upon.
+ * note：优先队列，记录还没调用的 rules
  */
 class RuleQueue {
   //~ Static fields/initializers ---------------------------------------------
@@ -67,6 +68,7 @@ class RuleQueue {
 
   /**
    * The importance of each subset.
+   * note：每个 subset 的 importance
    */
   final Map<RelSubset, Double> subsetImportances = new HashMap<>();
 
@@ -74,6 +76,7 @@ class RuleQueue {
    * The set of RelSubsets whose importance is currently in an artificially
    * raised state. Typically this only includes RelSubsets which have only
    * logical RelNodes.
+   * note：importance 当前是在手动提高状态的 RelSubSets 集合，典型是那种只有 logical RelNode 的 RelSubset
    */
   final Set<RelSubset> boostedSubsets = new HashSet<>();
 
@@ -84,12 +87,16 @@ class RuleQueue {
    * added to the appropriate PhaseMatchList(s). As the planner completes
    * phases, the matching entry is removed from this list to avoid unused
    * work.
+   * note：VolcanoPlannerPhase 与 rule-matches list 的对应关系
+   * note：最初时，PhaseMatchList 为 empty，随着 planner 被触发，rule-match 将会被添加对应阶段的 PhaseMatchList 中
+   * note：当 planner 完成后，the matching entry 将会被移除
    */
   final Map<VolcanoPlannerPhase, PhaseMatchList> matchListMap =
       new EnumMap<>(VolcanoPlannerPhase.class);
 
   /**
    * Sorts rule-matches into decreasing order of importance.
+   * note：按照 importance 对 rule-matches 排序
    */
   private static final Comparator<VolcanoRuleMatch> MATCH_COMPARATOR =
       new RuleMatchImportanceComparator();
@@ -105,11 +112,13 @@ class RuleQueue {
   /**
    * Maps a {@link VolcanoPlannerPhase} to a set of rule names.  Named rules
    * may be invoked in their corresponding phase.
+   * note：各个阶段与 rule names set 的对应关系
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
 
   //~ Constructors -----------------------------------------------------------
 
+  //note: 初始化
   RuleQueue(VolcanoPlanner planner) {
     this.planner = planner;
 
@@ -121,10 +130,13 @@ class RuleQueue {
     }
 
     // configure phases
+    //note: 配置各个阶段（主要会给 OPTIMIZE 以外的三个阶段添加一个无用的 rule）
+    // TODO: 2019-03-12 添加的 one useless rule name 有什么用呢？
     planner.getPhaseRuleMappingInitializer().initialize(phaseRuleMapping);
 
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
       // empty phases get converted to "all rules"
+      //note: 如果阶段对应的 rule set 为空，那么就给这个阶段对应的 rule set 添加一个 【ALL_RULES】
       if (phaseRuleMapping.get(phase).isEmpty()) {
         phaseRuleMapping.put(phase, ALL_RULES);
       }
@@ -132,7 +144,7 @@ class RuleQueue {
       // create a match list data structure for each phase
       PhaseMatchList matchList = new PhaseMatchList(phase);
 
-      matchListMap.put(phase, matchList);
+      matchListMap.put(phase, matchList); //note: 初始化 matchListMap
     }
   }
 
@@ -151,6 +163,7 @@ class RuleQueue {
   /**
    * Removes the {@link PhaseMatchList rule-match list} for the given planner
    * phase.
+   * note：当前的阶段完成，移除其 rule-match list
    */
   public void phaseCompleted(VolcanoPlannerPhase phase) {
     matchListMap.get(phase).clear();
@@ -173,6 +186,8 @@ class RuleQueue {
 
   /**
    * Recomputes the importance of the given RelSubset.
+   * note：重新计算指定的 RelSubset 的 importance
+   * note：如果为 true，即使 subset 没有注册，也会强制 importance 更新
    *
    * @param subset RelSubset whose importance is to be recomputed
    * @param force  if true, forces an importance update even if the subset has
@@ -180,8 +195,8 @@ class RuleQueue {
    */
   public void recompute(RelSubset subset, boolean force) {
     Double previousImportance = subsetImportances.get(subset);
-    if (previousImportance == null) {
-      if (!force) {
+    if (previousImportance == null) { //note: subset 还没有注册的情况下
+      if (!force) { //note: 如果不是强制，可以直接先返回
         // Subset has not been registered yet. Don't worry about it.
         return;
       }
@@ -189,11 +204,13 @@ class RuleQueue {
       previousImportance = Double.NEGATIVE_INFINITY;
     }
 
+    //note: 计算器 importance 值
     double importance = computeImportance(subset);
     if (previousImportance == importance) {
       return;
     }
 
+    //note: 缓存中更新其 importance
     updateImportance(subset, importance);
   }
 
@@ -209,6 +226,8 @@ class RuleQueue {
    * Artificially boosts the importance of the given {@link RelSubset}s by a
    * given factor.
    *
+   * note：手动提高指定 RelSubset 的 importance
+   * note：没有指定的 RelSubset（之前 boostedSubsets 中记录的 RelSubset），importance 进行重新计算
    * <p>Iterates over the currently boosted RelSubsets and removes their
    * importance boost, forcing a recalculation of the RelSubsets' importances
    * (see {@link #recompute(RelSubset)}).
@@ -230,10 +249,11 @@ class RuleQueue {
 
       if (!subsets.contains(subset)) {
         iter.remove();
-        boostRemovals.add(subset);
+        boostRemovals.add(subset); //note: 如果 subsets 为 null，这里会添加所有的 boostedSubsets
       }
     }
 
+    //note: 按 children 数排序
     boostRemovals.sort(new Comparator<RelSubset>() {
       public int compare(RelSubset o1, RelSubset o2) {
         int o1children = countChildren(o1);
@@ -246,6 +266,7 @@ class RuleQueue {
         return c;
       }
 
+      //note: 计算所有子节点的个数
       private int countChildren(RelSubset subset) {
         int count = 0;
         for (RelNode rel : subset.getRels()) {
@@ -255,10 +276,12 @@ class RuleQueue {
       }
     });
 
+    //note: 对于 boostRemovals 重新计算 importance，并设置 boosted 为 false（如果之前设置为 true 的话）
     for (RelSubset subset : boostRemovals) {
       subset.propagateBoostRemoval(planner);
     }
 
+    //note: 对指定的 subsets 进行 importance 提高操作
     for (RelSubset subset : subsets) {
       double importance = subsetImportances.get(subset);
 
@@ -266,14 +289,16 @@ class RuleQueue {
           subset,
           Math.min(ONE_MINUS_EPSILON, importance * factor));
 
-      subset.boosted = true;
-      boostedSubsets.add(subset);
+      subset.boosted = true; //note: 标志位 true，这个 subset 的 Importance 被人为的提高过
+      boostedSubsets.add(subset); //note: 进行人工提高 importance 的 RelSubset 记录
     }
   }
 
   void updateImportance(RelSubset subset, Double importance) {
+    //note: 缓存其 importance
     subsetImportances.put(subset, importance);
 
+    //note: Clears the cached importance value of this rule match，下次将会被重新计算
     for (PhaseMatchList matchList : matchListMap.values()) {
       Multimap<RelSubset, VolcanoRuleMatch> relMatchMap =
           matchList.matchMap;
@@ -289,6 +314,8 @@ class RuleQueue {
    * Returns the importance of an equivalence class of relational expressions.
    * Subset importances are held in a lookup table, and importance changes
    * gradually propagate through that table.
+   * note：返回 relational expression 同义类的 importance
+   * note: 如果在同一个 set 中，有不同的 calling convention，
    *
    * <p>If a subset in the same set but with a different calling convention is
    * deemed to be important, then this subset has at least half of its
@@ -299,6 +326,7 @@ class RuleQueue {
     assert rel != null;
 
     double importance = 0;
+    //note: The set this subset belongs to.
     final RelSet set = planner.getSet(rel);
     assert set != null;
     for (RelSubset subset2 : set.subsets) {
@@ -307,8 +335,8 @@ class RuleQueue {
         continue;
       }
       double subsetImportance = d;
-      if (subset2 != rel) {
-        subsetImportance /= 2;
+      if (subset2 != rel) { //note: 不是同一个 RelSubset 的情况
+        subsetImportance /= 2; //note: 这个 subset importance 的一半
       }
       if (subsetImportance > importance) {
         importance = subsetImportance;
@@ -321,6 +349,7 @@ class RuleQueue {
    * Adds a rule match. The rule-matches are automatically added to all
    * existing {@link PhaseMatchList per-phase rule-match lists} which allow
    * the rule referenced by the match.
+   * note：添加一个 rule match（添加到所有现存的 match phase 中）
    */
   void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
@@ -333,6 +362,9 @@ class RuleQueue {
       String ruleClassName = match.getRule().getClass().getSimpleName();
 
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
+      //note: 如果 phaseRuleSet 不为 ALL_RULES，并且 phaseRuleSet 不包含这个 ruleClassName 时，就跳过(其他三个阶段都属于这个情况)
+      //note: 在添加 rule match 时，phaseRuleSet 可以控制哪些 match 可以添加、哪些不能添加
+      //note: 这里的话，默认只有处在 OPTIMIZE 阶段的 PhaseMatchList 可以添加相应的 rule match
       if (phaseRuleSet != ALL_RULES) {
         if (!phaseRuleSet.contains(ruleClassName)) {
           continue;
@@ -349,6 +381,11 @@ class RuleQueue {
   }
 
   /**
+   * note：计算一个节点的 importance， importance 的定义如下：
+   * 1. RelSubset root 的 importance 是1；
+   * 2. 其他 RelSubset 的 importance 是它对其父节点的 importance 的和；
+   * 3. children 的 importance 是根据其 cost 来计算的；
+   *
    * Computes the <dfn>importance</dfn> of a node. Importance is defined as
    * follows:
    *
@@ -379,16 +416,20 @@ class RuleQueue {
     double importance;
     if (subset == planner.root) {
       // The root always has importance = 1
+      //note: root RelSubset 的 importance 为1
       importance = 1.0;
     } else {
       final RelMetadataQuery mq = subset.getCluster().getMetadataQuery();
 
       // The importance of a subset is the max of its importance to its
       // parents
+      //note: 计算其相对于 parent 的最大 importance，多个 parent 的情况下，选择一个最大值
       importance = 0.0;
       for (RelSubset parent : subset.getParentSubsets(planner)) {
+        //note: 计算这个 RelSubset 相对于 parent 的 importance
         final double childImportance =
             computeImportanceOfChild(mq, subset, parent);
+        //note: 选择最大的 importance
         importance = Math.max(importance, childImportance);
       }
     }
@@ -419,6 +460,8 @@ class RuleQueue {
   /**
    * Removes the rule match with the highest importance, and returns it.
    *
+   * note：返回最高 importance 的 rule，并从 Rule Match 中移除（处理过后的就移除）
+   * note：如果集合为空，就返回 null
    * <p>Returns {@code null} if there are no more matches.</p>
    *
    * <p>Note that the VolcanoPlanner may still decide to reject rule matches
@@ -432,6 +475,7 @@ class RuleQueue {
   VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
     dump();
 
+    //note: 选择当前阶段对应的 PhaseMatchList
     PhaseMatchList phaseMatchList = matchListMap.get(phase);
     if (phaseMatchList == null) {
       throw new AssertionError("Used match list for phase " + phase
@@ -441,6 +485,7 @@ class RuleQueue {
     final List<VolcanoRuleMatch> matchList = phaseMatchList.list;
     VolcanoRuleMatch match;
     for (;;) {
+      //note: 按照前面的逻辑只有在 OPTIMIZE 阶段，PhaseMatchList 才不为空，其他阶段都是空
       if (matchList.isEmpty()) {
         return null;
       }
@@ -459,7 +504,7 @@ class RuleQueue {
         }
 
         LOGGER.trace(b.toString());
-      } else {
+      } else { //note: 直接遍历找到 importance 最大的 match（上面先做排序，是为了输出日志）
         // If we're not tracing, it's not worth the effort of sorting the
         // list to find the minimum.
         match = null;
@@ -486,8 +531,10 @@ class RuleQueue {
     // A rule match's digest is composed of the operand RelNodes' digests,
     // which may have changed if sets have merged since the rule match was
     // enqueued.
+    //note: 重新计算一下这个 RuleMatch 的 digest
     match.recomputeDigest();
 
+    //note: 从 phaseMatchList 移除这个 RuleMatch
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 
@@ -497,6 +544,7 @@ class RuleQueue {
 
   /** Returns whether to skip a match. This happens if any of the
    * {@link RelNode}s have importance zero. */
+  //note: 如果 RelNode 的 importance 是0，就跳过这个 match
   private boolean skipMatch(VolcanoRuleMatch match) {
     for (RelNode rel : match.rels) {
       Double importance = planner.relImportances.get(rel);
@@ -562,10 +610,13 @@ class RuleQueue {
    * example, if the parent has importance = 0.8 and cost 100, then a child
    * with cost 50 will have importance 0.4, and a child with cost 25 will have
    * importance 0.2.
+   * note：根据 cost 计算 child 相对于 parent 的 importance（这是个相对值）
    */
   private double computeImportanceOfChild(RelMetadataQuery mq, RelSubset child,
       RelSubset parent) {
+    //note: 获取 parent 的 importance
     final double parentImportance = getImportance(parent);
+    //note: 获取对应的 cost 信息
     final double childCost = toDouble(planner.getCost(child, mq));
     final double parentCost = toDouble(planner.getCost(parent, mq));
     double alpha = childCost / parentCost;
@@ -573,6 +624,7 @@ class RuleQueue {
       // child is always less important than parent
       alpha = 0.99;
     }
+    //note: 根据 cost 比列计算其 importance
     final double importance = parentImportance * alpha;
     LOGGER.trace("Importance of [{}] to its parent [{}] is {} (parent importance={}, child cost={},"
         + " parent cost={})", child, parent, importance, parentImportance, childCost, parentCost);
@@ -604,6 +656,7 @@ class RuleQueue {
 
   /**
    * Compares {@link RelNode} objects according to their cached 'importance'.
+   * note: rule 根据其 importance 做相应比较
    */
   private class RelImportanceComparator implements Comparator<RelSubset> {
     public int compare(
@@ -648,6 +701,7 @@ class RuleQueue {
    * PhaseMatchList represents a set of {@link VolcanoRuleMatch rule-matches}
    * for a particular
    * {@link VolcanoPlannerPhase phase of the planner's execution}.
+   * note：对于某个阶段（VolcanoPlannerPhase），一个 VolcanoRuleMatch 的集合
    */
   private static class PhaseMatchList {
     /**
@@ -673,6 +727,7 @@ class RuleQueue {
     final Set<String> names = new HashSet<>();
 
     /**
+     * note: RelSubset 与 VolcanoRuleMatches 的 map
      * Multi-map of RelSubset to VolcanoRuleMatches. Used to
      * {@link VolcanoRuleMatch#clearCachedImportance() clear} the rule-match's
      * cached importance when the importance of a related RelSubset is modified

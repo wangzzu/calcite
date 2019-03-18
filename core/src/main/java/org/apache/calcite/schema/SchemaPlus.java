@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
  * parent schema that might be a wrapped instance of a user-defined
  * {@link Schema}, or indeed might not.
  */
+//note: Schema 接口的扩展，当用户通过自定义的schema或者自定义的表添加一个schema时，将会使用到这个接口
 public interface SchemaPlus extends Schema {
   /**
    * Returns the parent schema, or null if this schema has no parent.

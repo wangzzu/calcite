@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.Enumerable;
 public interface ScannableTable extends Table {
   /** Returns an enumerator over the rows in this Table. Each row is represented
    * as an array of its column values. */
+  //note: 扫描文件，每一行代表一行
   Enumerable<Object[]> scan(DataContext root);
 }
 

@@ -65,6 +65,7 @@ public interface Schema {
   /**
    * Returns the names of the tables in this schema.
    *
+   * note：获取Schema下的所有表名集合
    * @return Names of the tables in this schema
    */
   Set<String> getTableNames();
@@ -96,6 +97,7 @@ public interface Schema {
   /**
    * Returns the names of the functions in this schema.
    *
+   * note: 获取所有的函数名集合
    * @return Names of the functions in this schema
    */
   Set<String> getFunctionNames();

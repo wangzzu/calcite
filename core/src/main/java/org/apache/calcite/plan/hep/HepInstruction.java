@@ -26,6 +26,7 @@ import java.util.Set;
  * HepInstruction represents one instruction in a HepProgram. The actual
  * instruction set is defined here via inner classes; if these grow too big,
  * they should be moved out to top-level classes.
+ * note：表示 HepProgram 中的一个 instruction
  */
 abstract class HepInstruction {
   //~ Methods ----------------------------------------------------------------
@@ -100,6 +101,7 @@ abstract class HepInstruction {
   }
 
   /** Instruction that executes a given rule. */
+  //note: 执行指定 rule 的 Instruction
   static class RuleInstance extends HepInstruction {
     /**
      * Description to look for, or null if rule specified explicitly.
@@ -109,6 +111,7 @@ abstract class HepInstruction {
     /**
      * Explicitly specified rule, or rule looked up by planner from
      * description.
+     * note：设置其 Rule
      */
     RelOptRule rule;
 
@@ -172,6 +175,7 @@ abstract class HepInstruction {
   }
 
   /** Instruction that ends a group. */
+  //note: 是不是可以理解为一组 RelOptRule
   static class EndGroup extends HepInstruction {
     /**
      * Actual rule set instantiated during planning by collecting grouped

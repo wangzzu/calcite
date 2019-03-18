@@ -34,6 +34,7 @@ import javax.annotation.Nonnull;
 
 /**
  * Simple implementation of {@link RelCollation}.
+ * note：RelCollation 的实现
  */
 public class RelCollationImpl implements RelCollation {
   //~ Static fields/initializers ---------------------------------------------

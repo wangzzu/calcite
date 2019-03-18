@@ -71,6 +71,7 @@ import java.util.Objects;
  *   fields: [(0, "n"), (0, "n2"), (1, "n")]
  *   collation: []
  * }</code></blockquote>
+ * RelNode tree 的根节点
  */
 public class RelRoot {
   public final RelNode rel;

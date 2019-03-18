@@ -1952,6 +1952,7 @@ public abstract class RelOptUtil {
   /**
    * Converts a relational expression to a string, showing just basic
    * attributes.
+   * note: 转换成 string
    */
   public static String toString(final RelNode rel) {
     return toString(rel, SqlExplainLevel.EXPPLAN_ATTRIBUTES);

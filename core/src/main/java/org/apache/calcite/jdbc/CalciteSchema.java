@@ -51,6 +51,7 @@ import java.util.Set;
 /**
  * Schema.
  *
+ * note: 对内部使用的自定义schema做相应的封装
  * <p>Wrapper around user-defined schema used internally.</p>
  */
 public abstract class CalciteSchema {

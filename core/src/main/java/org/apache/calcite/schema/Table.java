@@ -55,12 +55,15 @@ public interface Table {
    * @param typeFactory Type factory with which to create the type
    * @return Row type
    */
+  //note: 定义Table行记录的字段以及字段类型。
   RelDataType getRowType(RelDataTypeFactory typeFactory);
 
   /** Returns a provider of statistics about this table. */
+  //note: 获取统计信息
   Statistic getStatistic();
 
   /** Type of table. */
+  //note: table的类型，table的类型有很多种，例如table和view。
   Schema.TableType getJdbcTableType();
 
   /**

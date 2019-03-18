@@ -25,6 +25,8 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 /**
  * Definition of the distribution trait.
  *
+ * note：定义数据分布的格式
+ *
  * <p>Distribution is a physical property (i.e. a trait) because it can be
  * changed without loss of information. The converter to do this is the
  * {@link Exchange} operator.

@@ -943,6 +943,7 @@ SqlNode SqlQueryEof() :
 /**
  * Parses an SQL statement.
  */
+ //note: 解析 SQL statement
 SqlNode SqlStmt() :
 {
     SqlNode stmt;
@@ -6019,7 +6020,7 @@ SqlPostfixOperator PostfixRowOperator() :
 
 /* KEYWORDS:  anything in this list is a reserved word unless it appears
    in the NonReservedKeyWord() production. */
-
+//note: 保留字
 <DEFAULT, DQID, BTID> TOKEN :
 {
     < A: "A" >
@@ -6888,7 +6889,7 @@ TOKEN_MGR_DECLS : {
 
 /*
 Lexical states:
-
+//note：三种状态，它们都是一样的，就看后面怎么去使用
 DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
 DQID:    Identifiers are double-quoted, e.g. "My Identifier"
 BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`

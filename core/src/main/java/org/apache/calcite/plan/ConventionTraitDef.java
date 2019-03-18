@@ -78,6 +78,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     return "convention";
   }
 
+  //note: 返回的类型是 Convention
   public Convention getDefault() {
     return Convention.NONE;
   }

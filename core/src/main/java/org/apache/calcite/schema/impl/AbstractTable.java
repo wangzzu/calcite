@@ -38,10 +38,12 @@ public abstract class AbstractTable implements Table, Wrapper {
   }
 
   // Default implementation. Override if you have statistics.
+  //note: 默认的统计信息
   public Statistic getStatistic() {
     return Statistics.UNKNOWN;
   }
 
+  //note: 默认是table类型
   public Schema.TableType getJdbcTableType() {
     return Schema.TableType.TABLE;
   }

@@ -152,6 +152,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
   /**
    * Called when all operands have matched.
+   * note：当匹配时
    */
   protected void onMatch() {
     assert getRule().matches(this);
@@ -162,6 +163,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         return;
       }
 
+      //note: 做相应的判断，不满足条件就直接返回
       for (int i = 0; i < rels.length; i++) {
         RelNode rel = rels[i];
         RelSubset subset = volcanoPlanner.getSubset(rel);
@@ -209,9 +211,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         this.generatedRelList = new ArrayList<>();
       }
 
-      volcanoPlanner.ruleCallStack.push(this);
+      volcanoPlanner.ruleCallStack.push(this);//note: 记录到 ruleCallStack 中
       try {
-        getRule().onMatch(this);
+        getRule().onMatch(this); //note: 进行相应的转换
       } finally {
         volcanoPlanner.ruleCallStack.pop();
       }
@@ -249,7 +251,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     assert getOperand0().matches(rel) : "precondition";
     final int solve = 0;
     int operandOrdinal = getOperand0().solveOrder[solve];
-    this.rels[operandOrdinal] = rel;
+    this.rels[operandOrdinal] = rel; //note: 在这里记录要应用的 RelNode
     matchRecurse(solve + 1);
   }
 
@@ -266,10 +268,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       // We have matched all operands. Now ask the rule whether it
       // matches; this gives the rule chance to apply side-conditions.
       // If the side-conditions are satisfied, we have a match.
-      if (getRule().matches(this)) {
+      if (getRule().matches(this)) { //note: 只有这种情况才会添加到 RuleQueue 中
         onMatch();
       }
     } else {
+      //note: 如果 operand 大于1时，match 调用时这里的 solve 是 1，会进入到这里
       final int operandOrdinal = operand0.solveOrder[solve];
       final int previousOperandOrdinal = operand0.solveOrder[solve - 1];
       boolean ascending = operandOrdinal < previousOperandOrdinal;
@@ -337,7 +340,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           }
         }
 
-        rels[operandOrdinal] = rel;
+        rels[operandOrdinal] = rel; //note: 依然初始化为 rel
         matchRecurse(solve + 1);
       }
     }

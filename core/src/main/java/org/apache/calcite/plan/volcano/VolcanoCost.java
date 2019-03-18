@@ -42,6 +42,7 @@ class VolcanoCost implements RelOptCost {
       };
 
   static final VolcanoCost HUGE =
+      //note: 行数、CPU、IO 都初始化为 Double.MAX_VALUE
       new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE) {
         public String toString() {
           return "{huge}";
@@ -217,6 +218,7 @@ class VolcanoCost implements RelOptCost {
 
   /** Implementation of {@link org.apache.calcite.plan.RelOptCostFactory}
    * that creates {@link org.apache.calcite.plan.volcano.VolcanoCost}s. */
+  //note: RelOptCostFactory 的一个实现，默认使用
   private static class Factory implements RelOptCostFactory {
     public RelOptCost makeCost(double dRows, double dCpu, double dIo) {
       return new VolcanoCost(dRows, dCpu, dIo);

@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 /**
  * Metadata about a relational expression.
  *
+ * note：一个关闭表达式的 metadata
  * <p>For particular types of metadata, a sub-class defines one of more methods
  * to query that metadata. Then a {@link RelMetadataProvider} can offer those
  * kinds of metadata for particular sub-classes of {@link RelNode}.

@@ -85,6 +85,7 @@ public abstract class SqlNode implements Cloneable {
    * Returns the type of node this is, or
    * {@link org.apache.calcite.sql.SqlKind#OTHER} if it's nothing special.
    *
+   * note: 获取 sql 操作符的类型
    * @return a {@link SqlKind} value, never null
    * @see #isA
    */
@@ -159,6 +160,7 @@ public abstract class SqlNode implements Cloneable {
   /**
    * Writes a SQL representation of this node to a writer.
    *
+   * note：将这个sqlNode的SQL表达式写到writer中
    * <p>The <code>leftPrec</code> and <code>rightPrec</code> parameters give
    * us enough context to decide whether we need to enclose the expression in
    * parentheses. For example, we need parentheses around "2 + 3" if preceded
@@ -237,6 +239,8 @@ public abstract class SqlNode implements Cloneable {
   /**
    * Accepts a generic visitor.
    *
+   * note: 接收一个普通的 visitor
+   * note：这个方法在实现上会调用 visitor 对象的 visit 方法
    * <p>Implementations of this method in subtypes simply call the appropriate
    * <code>visit</code> method on the
    * {@link org.apache.calcite.sql.util.SqlVisitor visitor object}.

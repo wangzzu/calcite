@@ -138,6 +138,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Default implementation of {@link SqlValidator}.
+ * note: 默认的 sqlValidator
  */
 public class SqlValidatorImpl implements SqlValidatorWithHints {
   //~ Static fields/initializers ---------------------------------------------
@@ -626,10 +627,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return false;
   }
 
+  //note: 做相应的语法树校验
   public SqlNode validate(SqlNode topNode) {
+    //note: root 对应的 Scope
     SqlValidatorScope scope = new EmptyScope(this);
     scope = new CatalogScope(scope, ImmutableList.of("CATALOG"));
-    final SqlNode topNode2 = validateScopedExpression(topNode, scope);
+    //note: 1.rewrite expression
+    //note: 2.做相应的语法检查
+    final SqlNode topNode2 = validateScopedExpression(topNode, scope); //note: 验证
     final RelDataType type = getValidatedNodeType(topNode2);
     Util.discard(type);
     return topNode2;
@@ -915,16 +920,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return validateScopedExpression(topNode, scope);
   }
 
+  /**
+   *
+   * @param topNode
+   * @param scope
+   * @return
+   */
   private SqlNode validateScopedExpression(
       SqlNode topNode,
       SqlValidatorScope scope) {
+    //note: 1. rewrite expression，将其标准化，便于后面的逻辑计划优化
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
     top = outermostNode;
     TRACER.trace("After unconditional rewrite: {}", outermostNode);
+    //note: 2. Registers a query in a parent scope.
+    //note: register scopes and namespaces implied a relational expression
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
       registerQuery(scope, null, outermostNode, outermostNode, null, false);
     }
+    //note: 3. catalog 验证，调用 SqlNode 的 validate 方法，
     outermostNode.validate(this, scope);
     if (!outermostNode.isA(SqlKind.TOP_LEVEL)) {
       // force type derivation so that we can provide it to the
@@ -935,6 +950,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return outermostNode;
   }
 
+  //note: 检查
   public void validateQuery(SqlNode node, SqlValidatorScope scope,
       RelDataType targetRowType) {
     final SqlValidatorNamespace ns = getNamespace(node, scope);
@@ -950,7 +966,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    validateNamespace(ns, targetRowType);
+    validateNamespace(ns, targetRowType);//note: 检查
     switch (node.getKind()) {
     case EXTEND:
       // Until we have a dedicated namespace for EXTEND
@@ -974,7 +990,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   protected void validateNamespace(final SqlValidatorNamespace namespace,
       RelDataType targetRowType) {
-    namespace.validate(targetRowType);
+    namespace.validate(targetRowType);//note: 验证
     if (namespace.getNode() != null) {
       setValidatedNodeType(namespace.getNode(), namespace.getType());
     }
@@ -1110,6 +1126,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * rewrites massage the expression tree into a standard form so that the
    * rest of the validation logic can be simpler.
    *
+   * note: 先 rewrite expression，方便后面的逻辑验证
+   * note：在解析的时候，会逐字做相应的rewrite
    * @param node      expression to be rewritten
    * @param underFrom whether node appears directly under a FROM clause
    * @return rewritten expression
@@ -1117,41 +1135,43 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected SqlNode performUnconditionalRewrites(
       SqlNode node,
       boolean underFrom) {
-    if (node == null) {
+    if (node == null) {//note: 有可能node还没定义
       return node;
     }
 
     SqlNode newOperand;
 
     // first transform operands and invoke generic call rewrite
+    //note: 转换 operand，触发 rewrite
     if (node instanceof SqlCall) {
       if (node instanceof SqlMerge) {
         validatingSqlMerge = true;
       }
       SqlCall call = (SqlCall) node;
       final SqlKind kind = call.getKind();
-      final List<SqlNode> operands = call.getOperandList();
+      final List<SqlNode> operands = call.getOperandList(); //note: 当前SqlCall可用的operand
       for (int i = 0; i < operands.size(); i++) {
         SqlNode operand = operands.get(i);
         boolean childUnderFrom;
         if (kind == SqlKind.SELECT) {
-          childUnderFrom = i == SqlSelect.FROM_OPERAND;
+          childUnderFrom = i == SqlSelect.FROM_OPERAND; //note: 是否是from operand
         } else if (kind == SqlKind.AS && (i == 0)) {
           // for an aliased expression, it is under FROM if
           // the AS expression is under FROM
+          //note: 对于有别名的expression，它一般是在FORM下面（如果FROM中包含as关键字）
           childUnderFrom = underFrom;
         } else {
           childUnderFrom = false;
         }
         newOperand =
-            performUnconditionalRewrites(operand, childUnderFrom);
-        if (newOperand != null && newOperand != operand) {
+            performUnconditionalRewrites(operand, childUnderFrom);//note: 对于select操作，第一次执行时会进入
+        if (newOperand != null && newOperand != operand) { //note: 做 rewrite
           call.setOperand(i, newOperand);
         }
       }
 
-      if (call.getOperator() instanceof SqlUnresolvedFunction) {
-        assert call instanceof SqlBasicCall;
+      if (call.getOperator() instanceof SqlUnresolvedFunction) { //note:如果是未解析的函数
+        assert call instanceof SqlBasicCall; //note: 要求必须是 SqlBasicCall 类型
         final SqlUnresolvedFunction function =
             (SqlUnresolvedFunction) call.getOperator();
         // This function hasn't been resolved yet.  Perform
@@ -1165,7 +1185,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           ((SqlBasicCall) call).setOperator(overloads.get(0));
         }
       }
-      if (rewriteCalls) {
+      if (rewriteCalls) { //note: 默认是true的
         node = call.getOperator().rewriteCall(this, call);
       }
     } else if (node instanceof SqlNodeList) {
@@ -1176,7 +1196,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             performUnconditionalRewrites(
                 operand,
                 false);
-        if (newOperand != null) {
+        if (newOperand != null) { //todo: 为什么跟前面不一样，不做一个等号的验证
           list.getList().set(i, newOperand);
         }
       }
@@ -1553,6 +1573,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return typeFactory.leastRestrictive(rowTypes);
   }
 
+  //note: 返回 SqlNode 的 RelDataType
   public RelDataType getValidatedNodeType(SqlNode node) {
     RelDataType type = getValidatedNodeTypeIfKnown(node);
     if (type == null) {
@@ -1587,6 +1608,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * <p>Unlike the base class method, this method is not deprecated.
    * It is available from within Calcite, but is not part of the public API.
    *
+   * note: 如果 SqlNode 已经验证的话，就记录下来
    * @param node A SQL parse tree node, never null
    * @param type Its type; must not be null
    */
@@ -1937,7 +1959,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorNamespace ns,
       boolean forceNullable) {
     namespaces.put(ns.getNode(), ns);
-    if (usingScope != null) {
+    if (usingScope != null) {//note: 为null，表示是root
       usingScope.addChild(ns, alias, forceNullable);
     }
   }
@@ -2298,6 +2320,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Creates a namespace for a <code>SELECT</code> node. Derived class may
    * override this factory method.
    *
+   * note：创建一个namespace
    * @param select        Select node
    * @param enclosingNode Enclosing node
    * @return Select namespace
@@ -2326,6 +2349,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * Registers a query in a parent scope.
    *
+   * note: 在父scope注册一个查询
    * @param parentScope Parent scope which this scope turns to in order to
    *                    resolve objects
    * @param usingScope  Scope whose child list this scope should add itself to
@@ -2340,6 +2364,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode enclosingNode,
       String alias,
       boolean forceNullable) {
+    //note: 默认下面是true（null,null）
     Preconditions.checkArgument(usingScope == null || alias != null);
     registerQuery(
         parentScope,
@@ -2348,7 +2373,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         enclosingNode,
         alias,
         forceNullable,
-        true);
+        true); //note: 设置 checkUpdate 为true，验证是否支持更新特性
   }
 
   /**
@@ -2378,11 +2403,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlCall call;
     List<SqlNode> operands;
     switch (node.getKind()) {
-    case SELECT:
+    case SELECT: //note: select的情况
       final SqlSelect select = (SqlSelect) node;
+      //note: 创建并注册 namespace
       final SelectNamespace selectNs =
           createSelectNamespace(select, enclosingNode);
       registerNamespace(usingScope, alias, selectNs, forceNullable);
+      //note: 创建并注册 scope
       final SqlValidatorScope windowParentScope =
           (usingScope != null) ? usingScope : parentScope;
       SelectScope selectScope =
@@ -3244,6 +3271,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param targetRowType Desired row type, must not be null, may be the data
    *                      type 'unknown'.
    */
+  //note: 检查 select 语句
   protected void validateSelect(
       SqlSelect select,
       RelDataType targetRowType) {

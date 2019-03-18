@@ -36,6 +36,7 @@ import java.util.List;
 /**
  * Converts a relational expression to any given output convention.
  *
+ * note：把一个 relational expression 变成指定的数据 convention
  * <p>Unlike most {@link org.apache.calcite.rel.convert.Converter}s, an abstract
  * converter is always abstract. You would typically create an
  * <code>AbstractConverter</code> when it is necessary to transform a relational

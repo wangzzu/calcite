@@ -69,6 +69,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utility methods related to validation.
+ * note: 与验证相关的程序方法
  */
 public class SqlValidatorUtil {
   private SqlValidatorUtil() {}

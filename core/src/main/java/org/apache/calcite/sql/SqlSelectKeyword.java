@@ -20,6 +20,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * Defines the keywords which can occur immediately after the "SELECT" keyword.
+ * note：定义 select 关键字后面可能出现的关键字
  */
 public enum SqlSelectKeyword {
   DISTINCT,

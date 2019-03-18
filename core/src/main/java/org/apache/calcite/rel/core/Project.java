@@ -51,6 +51,7 @@ import java.util.Set;
 /**
  * Relational expression that computes a set of
  * 'select expressions' from its input relational expression.
+ * 也代表了一种 relational expressionw
  *
  * @see org.apache.calcite.rel.logical.LogicalProject
  */

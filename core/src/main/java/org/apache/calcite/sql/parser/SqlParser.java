@@ -48,11 +48,11 @@ public class SqlParser {
       Config config) {
     this.parser = parser;
     parser.setTabSize(1);
-    parser.setQuotedCasing(config.quotedCasing());
-    parser.setUnquotedCasing(config.unquotedCasing());
-    parser.setIdentifierMaxLength(config.identifierMaxLength());
-    parser.setConformance(config.conformance());
-    switch (config.quoting()) {
+    parser.setQuotedCasing(config.quotedCasing()); //note: 对引用标识，设置大小写策略
+    parser.setUnquotedCasing(config.unquotedCasing()); //note: 对非引用标识，设置大小写策略
+    parser.setIdentifierMaxLength(config.identifierMaxLength()); //note: 设置引用标识的最大字符长度
+    parser.setConformance(config.conformance()); //note: 设置sql的兼容性
+    switch (config.quoting()) { //note: 引用标识符号（双引号、单引号、括号）
     case DOUBLE_QUOTE:
       parser.switchTo("DQID");
       break;
@@ -73,6 +73,7 @@ public class SqlParser {
    *
    * <p>The default lexical policy is similar to Oracle.
    *
+   * note：这里默认会初始化 configBuilder().build()
    * @see Lex#ORACLE
    *
    * @param s An SQL statement or expression to parse.
@@ -145,7 +146,7 @@ public class SqlParser {
    */
   public SqlNode parseQuery() throws SqlParseException {
     try {
-      return parser.parseSqlStmtEof();
+      return parser.parseSqlStmtEof(); //note: 解析sql语句
     } catch (Throwable ex) {
       if (ex instanceof CalciteContextException) {
         final String originalSql = parser.getOriginalSql();
@@ -212,7 +213,7 @@ public class SqlParser {
    */
   public interface Config {
     /** Default configuration. */
-    Config DEFAULT = configBuilder().build();
+    Config DEFAULT = configBuilder().build(); //note: default configure
 
     int identifierMaxLength();
     Casing quotedCasing();
@@ -226,6 +227,7 @@ public class SqlParser {
   }
 
   /** Builder for a {@link Config}. */
+  //note: Config builder 实现，用于一些初始化参数设置
   public static class ConfigBuilder {
     private Casing quotedCasing = Lex.ORACLE.quotedCasing;
     private Casing unquotedCasing = Lex.ORACLE.unquotedCasing;
@@ -233,7 +235,7 @@ public class SqlParser {
     private int identifierMaxLength = DEFAULT_IDENTIFIER_MAX_LENGTH;
     private boolean caseSensitive = Lex.ORACLE.caseSensitive;
     private SqlConformance conformance = SqlConformanceEnum.DEFAULT;
-    private SqlParserImplFactory parserFactory = SqlParserImpl.FACTORY;
+    private SqlParserImplFactory parserFactory = SqlParserImpl.FACTORY; //note: SqlParserImplFactory 的实现类
 
     private ConfigBuilder() {}
 
@@ -317,6 +319,7 @@ public class SqlParser {
   /** Implementation of
    * {@link Config}.
    * Called by builder; all values are in private final fields. */
+  //note: Config 接口的具体实现类
   private static class ConfigImpl implements Config {
     private final int identifierMaxLength;
     private final boolean caseSensitive;

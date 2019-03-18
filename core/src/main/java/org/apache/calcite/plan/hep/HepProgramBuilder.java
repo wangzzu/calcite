@@ -26,6 +26,8 @@ import java.util.List;
 
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.
+ *
+ * note: 用于创建 HepProgram 对象实例
  */
 public class HepProgramBuilder {
   //~ Instance fields --------------------------------------------------------
@@ -253,6 +255,7 @@ public class HepProgramBuilder {
   /**
    * Returns the constructed program, clearing the state of this program
    * builder as a side-effect.
+   * note：创建一个 HepProgram 实例
    *
    * @return immutable program
    */

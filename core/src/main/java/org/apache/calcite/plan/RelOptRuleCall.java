@@ -216,6 +216,7 @@ public abstract class RelOptRuleCall {
    * Any trait not specifically set in the RelTraitSet returned by <code>
    * rel.getTraits()</code> will be copied from <code>
    * this.rels[0].getTraitSet()</code>.
+   * note：当发现 rule match 时，这个将会被 rule 调用
    *
    * @param rel   Relational expression equivalent to the root relational
    *              expression of the rule call, {@code call.rels(0)}

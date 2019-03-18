@@ -72,7 +72,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private HepProgram currentProgram;
 
-  private HepRelVertex root;
+  private HepRelVertex root; //note: root HepRelVertex
 
   private RelTraitSet requestedRootTraits;
 
@@ -80,7 +80,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
   // in order to provide deterministic behavior.
-  private final Set<RelOptRule> allRules = new LinkedHashSet<>();
+  private final Set<RelOptRule> allRules = new LinkedHashSet<>();//note: 记录注册的 Rules 信息
 
   private int nTransformations;
 
@@ -94,6 +94,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * Query graph, with edges directed from parent to child. This is a
    * single-rooted DAG, possibly with additional roots corresponding to
    * discarded plan fragments which remain to be garbage-collected.
+   * 这里的 Graph 就是一个节点
    */
   private final DirectedGraph<HepRelVertex, DefaultEdge> graph =
       DefaultDirectedGraph.create();
@@ -142,14 +143,17 @@ public class HepPlanner extends AbstractRelOptPlanner {
     super(costFactory, context);
     this.mainProgram = program;
     this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
-    this.noDag = noDag;
+    this.noDag = noDag; //note: false，允许使用 DAG 封装（为 true 时，还是 tree 的形式）
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptPlanner
+  //note: Sets the root node of this query.
   public void setRoot(RelNode rel) {
+    //note: 将 RelNode 转换为 DAG 表示
     root = addRelToGraph(rel);
+    //note: 仅仅是在 trace 日志中输出 Graph 信息
     dumpGraph();
   }
 
@@ -163,6 +167,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
+  //note: 注册 Rule 到
   public boolean addRule(RelOptRule rule) {
     boolean added = allRules.add(rule);
     if (added) {
@@ -195,23 +200,26 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
+  //note: 优化器的核心，匹配规则进行优化
   public RelNode findBestExp() {
     assert root != null;
 
+    //note: 运行 HepProgram 算法(按 HepProgram 中的 instructions 进行相应的优化)
     executeProgram(mainProgram);
 
     // Get rid of everything except what's in the final plan.
+    //note: 垃圾收集
     collectGarbage();
 
-    return buildFinalPlan(root);
+    return buildFinalPlan(root); //note: 返回最后的结果，还是以 RelNode 表示
   }
 
   private void executeProgram(HepProgram program) {
-    HepProgram savedProgram = currentProgram;
+    HepProgram savedProgram = currentProgram; //note: 保留当前的 Program
     currentProgram = program;
-    currentProgram.initialize(program == mainProgram);
+    currentProgram.initialize(program == mainProgram);//note: 如果是在同一个 Program 的话，保留上次 cache
     for (HepInstruction instruction : currentProgram.instructions) {
-      instruction.execute(this);
+      instruction.execute(this); //note: 按 Rule 进行优化(会调用 executeInstruction 方法)
       int delta = nTransformations - nTransformationsLastGC;
       if (delta > graphSizeLastGC) {
         // The number of transformations performed since the last
@@ -221,12 +229,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
         // way to amortize garbage collection cost over multiple
         // instructions, while keeping the highwater memory usage
         // proportional to the graph size.
+        //note: 进行转换的次数已经大于 DAG Graph 中的顶点数，这就意味着已经产生大量垃圾需要进行清理
         collectGarbage();
       }
     }
     currentProgram = savedProgram;
   }
 
+  //note: 获取初始化的 matchLimit
   void executeInstruction(
       HepInstruction.MatchLimit instruction) {
     LOGGER.trace("Setting match limit to {}", instruction.limit);
@@ -239,18 +249,20 @@ public class HepPlanner extends AbstractRelOptPlanner {
     currentProgram.matchOrder = instruction.order;
   }
 
+  //note: 执行相应的 RuleInstance
   void executeInstruction(
       HepInstruction.RuleInstance instruction) {
     if (skippingGroup()) {
       return;
     }
-    if (instruction.rule == null) {
+    if (instruction.rule == null) {//note: 如果 rule 为 null，那么就按照 description 查找具体的 rule
       assert instruction.ruleDescription != null;
       instruction.rule =
           getRuleByDescription(instruction.ruleDescription);
       LOGGER.trace("Looking up rule with description {}, found {}",
           instruction.ruleDescription, instruction.rule);
     }
+    //note: 执行相应的 rule
     if (instruction.rule != null) {
       applyRules(
           Collections.singleton(instruction.rule),
@@ -287,7 +299,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (currentProgram.group != null) {
       // Skip if we've already collected the ruleset.
       return !currentProgram.group.collecting;
-    } else {
+    } else { //note: 默认初始化的值是 null
       // Not grouping.
       return false;
     }
@@ -363,6 +375,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Leaving group");
   }
 
+  //note: 深度优先这种顺序的情况下，做相应的 rule 匹配
   private int depthFirstApply(Iterator<HepRelVertex> iter,
       Collection<RelOptRule> rules,
       boolean forceConversions, int nMatches) {
@@ -370,7 +383,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       HepRelVertex vertex = iter.next();
       for (RelOptRule rule : rules) {
         HepRelVertex newVertex =
-            applyRule(rule, vertex, forceConversions);
+            applyRule(rule, vertex, forceConversions); //note: 匹配
         if (newVertex == null || newVertex == vertex) {
           continue;
         }
@@ -390,6 +403,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return nMatches;
   }
 
+  //note: 执行 rule（forceConversions 默认 true）
   private void applyRules(
       Collection<RelOptRule> rules,
       boolean forceConversions) {
@@ -401,6 +415,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     LOGGER.trace("Applying rule set {}", rules);
 
+    //note: 当遍历规则是 ARBITRARY 或 DEPTH_FIRST 时，设置为 false，此时不会从 root 节点开始，否则每次 restart 都从 root 节点开始
     boolean fullRestartAfterTransformation =
         currentProgram.matchOrder != HepMatchOrder.ARBITRARY
         && currentProgram.matchOrder != HepMatchOrder.DEPTH_FIRST;
@@ -408,29 +423,36 @@ public class HepPlanner extends AbstractRelOptPlanner {
     int nMatches = 0;
 
     boolean fixedPoint;
+    //note: 两种情况会跳出循环，一种是达到 matchLimit 限制，一种是遍历一遍不会再有新的 transform 产生
     do {
+      //note: 按照遍历规则获取迭代器
       Iterator<HepRelVertex> iter = getGraphIterator(root);
       fixedPoint = true;
       while (iter.hasNext()) {
-        HepRelVertex vertex = iter.next();
-        for (RelOptRule rule : rules) {
+        HepRelVertex vertex = iter.next();//note: 遍历每个 HepRelVertex
+        for (RelOptRule rule : rules) {//note: 遍历每个 rules
+          //note: 进行规制匹配，也是真正进行相关操作的地方
           HepRelVertex newVertex =
               applyRule(rule, vertex, forceConversions);
           if (newVertex == null || newVertex == vertex) {
             continue;
           }
           ++nMatches;
+          //note: 超过 MatchLimit 的限制
           if (nMatches >= currentProgram.matchLimit) {
             return;
           }
           if (fullRestartAfterTransformation) {
+            //note: 发生 transformation 后，从 root 节点再次开始
             iter = getGraphIterator(root);
           } else {
             // To the extent possible, pick up where we left
             // off; have to create a new iterator because old
             // one was invalidated by transformation.
+            //note: 尽可能从上次进行后的节点开始
             iter = getGraphIterator(newVertex);
             if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
+              //note: 这样做的原因就是为了防止有些 HepRelVertex 遗漏了 rule 的匹配（每次从 root 开始是最简单的算法），因为可能出现下推
               nMatches =
                   depthFirstApply(iter, rules, forceConversions, nMatches);
               if (nMatches >= currentProgram.matchLimit) {
@@ -439,6 +461,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
             }
             // Remember to go around again since we're
             // skipping some stuff.
+            //note: 再来一遍，因为前面有跳过一些内容
             fixedPoint = false;
           }
           break;
@@ -497,27 +520,30 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return mapDigestToVertex.get(digest) != null;
   }
 
+  //note: rule 匹配操作的地方
   private HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
-    if (!belongsToDag(vertex)) {
+    if (!belongsToDag(vertex)) {//note: 这个 vertex 是否在当前的 dag 中（根据 digest 查找）
       return null;
     }
     RelTrait parentTrait = null;
     List<RelNode> parents = null;
-    if (rule instanceof ConverterRule) {
+    if (rule instanceof ConverterRule) {//note: ConverterRule的情况
       // Guaranteed converter rules require special casing to make sure
       // they only fire where actually needed, otherwise they tend to
       // fire to infinity and beyond.
+      //note: 保证 converter 可以触发
       ConverterRule converterRule = (ConverterRule) rule;
+      //note: isGuaranteed代表可以可以 converter，forceConversions 代表强制进行 converter
       if (converterRule.isGuaranteed() || !forceConversions) {
         if (!doesConverterApply(converterRule, vertex)) {
           return null;
         }
-        parentTrait = converterRule.getOutTrait();
+        parentTrait = converterRule.getOutTrait(); //note: 父节点的这个 Trait
       }
-    } else if (rule instanceof CommonRelSubExprRule) {
+    } else if (rule instanceof CommonRelSubExprRule) {//note: CommonRelSubExprRule的情况
       // Only fire CommonRelSubExprRules if the vertex is a common
       // subexpression.
       List<HepRelVertex> parentVertices = getVertexParents(vertex);
@@ -532,6 +558,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     final List<RelNode> bindings = new ArrayList<>();
     final Map<RelNode, List<RelNode>> nodeChildren = new HashMap<>();
+    //note: 判断是否 match
     boolean match =
         matchOperands(
             rule.getOperand(),
@@ -556,12 +583,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return null;
     }
 
-    fireRule(call);
+    fireRule(call); //note: 触发 rule
 
     if (!call.getResults().isEmpty()) {
       return applyTransformationResults(
-          vertex,
-          call,
+          vertex, //note: 原来的 vertex
+          call, //note: HepRuleCall 中的 results 会记录 transform 的结果
           parentTrait);
     }
 
@@ -579,6 +606,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         // We don't support converter chains.
         continue;
       }
+      //note: 查看当前的 RelNode 父节点的 TraitSet 是否包含 outTrait（证明父节点是期望做这个转换的）
       if (parentRel.getTraitSet().contains(outTrait)) {
         // This parent wants the traits produced by the converter.
         return true;
@@ -614,6 +642,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return parents;
   }
 
+  //note:
   private boolean matchOperands(
       RelOptRuleOperand operand,
       RelNode rel,
@@ -622,7 +651,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (!operand.matches(rel)) {
       return false;
     }
-    bindings.add(rel);
+    bindings.add(rel); //note: 添加到 bindings
     @SuppressWarnings("unchecked")
     List<HepRelVertex> childRels = (List) rel.getInputs();
     switch (operand.childPolicy) {
@@ -687,7 +716,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     RelNode bestRel = null;
 
-    if (call.getResults().size() == 1) {
+    if (call.getResults().size() == 1) {//note: 只有一个生成计划
       // No costing required; skip it to minimize the chance of hitting
       // rels without cost information.
       bestRel = call.getResults().get(0);
@@ -701,9 +730,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
           LOGGER.trace("considering {} with cumulative cost={} and rowcount={}",
               rel, thisCost, mq.getRowCount(rel));
         }
-        if ((bestRel == null) || thisCost.isLt(bestCost)) {
+        if ((bestRel == null) || thisCost.isLt(bestCost)) { //note: 如果 cost 比 bestCost 少
           bestRel = rel;
-          bestCost = thisCost;
+          bestCost = thisCost;//note: 更新 bestCost
         }
       }
     }
@@ -779,6 +808,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return rel;
   }
 
+  //note: 默认情况下，什么也不会做
   @Override public void onCopy(RelNode rel, RelNode newRel) {
     onCopyHook.apply(rel, newRel);
   }
@@ -793,50 +823,60 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return true;
   }
 
+  //note: 根据 RelNode 构建一个 Graph
   private HepRelVertex addRelToGraph(
       RelNode rel) {
     // Check if a transformation already produced a reference
     // to an existing vertex.
+    //note: 检查这个 rel 是否在 graph 中转换了
     if (graph.vertexSet().contains(rel)) {
       return (HepRelVertex) rel;
     }
 
     // Recursively add children, replacing this rel's inputs
     // with corresponding child vertices.
+    //note: 递归地增加子节点，使用子节点相关的 vertices 代替 rel 的 input
     final List<RelNode> inputs = rel.getInputs();
     final List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input1 : inputs) {
-      HepRelVertex childVertex = addRelToGraph(input1);
-      newInputs.add(childVertex);
+      HepRelVertex childVertex = addRelToGraph(input1); //note: 递归进行转换
+      newInputs.add(childVertex); //note: 每个 HepRelVertex 只记录其 Input
     }
 
-    if (!Util.equalShallow(inputs, newInputs)) {
+    if (!Util.equalShallow(inputs, newInputs)) { //note: 不相等的情况下
       RelNode oldRel = rel;
       rel = rel.copy(rel.getTraitSet(), newInputs);
       onCopy(oldRel, rel);
     }
     // Compute digest first time we add to DAG,
     // otherwise can't get equivVertex for common sub-expression
+    //note: 计算 relNode 的 digest
+    //note: Digest 的意思是：
+    //note: A short description of this relational expression's type, inputs, and
+    //note: other properties. The string uniquely identifies the node; another node
+    //note: is equivalent if and only if it has the same value.
     rel.recomputeDigest();
 
     // try to find equivalent rel only if DAG is allowed
+    //note: 如果允许 DAG 的话，检查是否有一个等价的 HepRelVertex，有的话直接返回
     if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
       String digest = rel.getDigest();
       HepRelVertex equivVertex = mapDigestToVertex.get(digest);
-      if (equivVertex != null) {
+      if (equivVertex != null) { //note: 已经存在
         // Use existing vertex.
         return equivVertex;
       }
     }
 
     // No equivalence:  create a new vertex to represent this rel.
+    //note: 创建一个 vertex 代替 rel
     HepRelVertex newVertex = new HepRelVertex(rel);
-    graph.addVertex(newVertex);
-    updateVertex(newVertex, rel);
+    graph.addVertex(newVertex); //note: 记录 Vertex
+    updateVertex(newVertex, rel);//note: 更新相关的缓存，比如 mapDigestToVertex map
 
-    for (RelNode input : rel.getInputs()) {
-      graph.addEdge(newVertex, (HepRelVertex) input);
+    for (RelNode input : rel.getInputs()) { //note: 设置 Edge
+      graph.addEdge(newVertex, (HepRelVertex) input);//note: 记录与整个 Vertex 先关的 input
     }
 
     nTransformations++;
@@ -911,6 +951,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         false);
   }
 
+  //note: 生成最后的计划， 还是以 RelNode 的形式展示
   private RelNode buildFinalPlan(HepRelVertex vertex) {
     RelNode rel = vertex.getCurrentRel();
 
@@ -989,6 +1030,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         + cyclicVertices);
   }
 
+  //note: 仅仅是在 trace 日志中输出 Graph 信息
   private void dumpGraph() {
     if (!LOGGER.isTraceEnabled()) {
       return;

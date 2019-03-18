@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
  * {@link RelMetadataProvider} interface. It provides generic formulas and
  * derivation rules for the standard logical algebra; coverage corresponds to
  * the methods declared in {@link RelMetadataQuery}.
+ * note：它为标准的逻辑代数提供了通用公司和推导原则
  */
 public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
   public static final DefaultRelMetadataProvider INSTANCE =
@@ -35,6 +36,7 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
    * handlers for generic RelNodes, so it should always be given lowest
    * priority when chaining.
    *
+   * note：创建一个默认的 provider，对于一般的 RelNodes，这个 provide 定义'catch-all'的 handler，它应该被设置较低的优先级
    * <p>Use this constructor only from a sub-class. Otherwise use the singleton
    * instance, {@link #INSTANCE}.
    */

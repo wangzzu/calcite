@@ -25,6 +25,7 @@ import java.util.Set;
 
 /**
  * Iterates over the vertices in a directed graph in depth-first order.
+ * note：按照深度优先遍历 vertices
  *
  * @param <V> Vertex type
  * @param <E> Edge type

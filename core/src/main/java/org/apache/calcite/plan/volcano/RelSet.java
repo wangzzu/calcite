@@ -40,6 +40,7 @@ import java.util.Set;
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
  * expressions which have identical semantics. We are generally interested in
  * using the expression which has the lowest cost.
+ * note: expression 的等价集合，也就是说集合中 expression 有相同的语义
  *
  * <p>All of the expressions in an <code>RelSet</code> have the same calling
  * convention.</p>
@@ -58,6 +59,7 @@ class RelSet {
    * same parent, there will be multiple entries.
    */
   final List<RelNode> parents = new ArrayList<>();
+  //note: 具体相同物理属性的子集合
   final List<RelSubset> subsets = new ArrayList<>();
 
   /**
@@ -69,6 +71,7 @@ class RelSet {
   /**
    * Set to the superseding set when this is found to be equivalent to another
    * set.
+   * note：当发现与另一个 RelSet 有相同的语义时，设置为替代集合
    */
   RelSet equivalentSet;
   RelNode rel;
@@ -76,11 +79,13 @@ class RelSet {
   /**
    * Variables that are set by relational expressions in this set
    * and available for use by parent and child expressions.
+   * note：在这个集合中 relational expression 设置的变量，父类和子类 expression 可用的变量
    */
   final Set<CorrelationId> variablesPropagated;
 
   /**
    * Variables that are used by relational expressions in this set.
+   * note：在这个集合中被 relational expression 使用的变量
    */
   final Set<CorrelationId> variablesUsed;
   final int id;
@@ -119,6 +124,7 @@ class RelSet {
     return rels;
   }
 
+  //note: 返回与其有相同 trait 的 RelSubset（具有相同 trait 的会放在同一个 RelSubset）
   public RelSubset getSubset(RelTraitSet traits) {
     for (RelSubset subset : subsets) {
       if (subset.getTraitSet().equals(traits)) {
@@ -145,7 +151,7 @@ class RelSet {
     assert equivalentSet == null : "adding to a dead set";
     final RelTraitSet traitSet = rel.getTraitSet().simplify();
     final RelSubset subset = getOrCreateSubset(rel.getCluster(), traitSet);
-    subset.add(rel);
+    subset.add(rel); //note: 添加到对应的 RelSubset 的 set 中
     return subset;
   }
 
@@ -209,6 +215,7 @@ class RelSet {
         }
       }
 
+      //note: 需要添加 convert 的情况
       if (addAbstractConverter && numTraitNeedConvert > 0) {
         if (subsetToOthers) {
           final AbstractConverter converter =
@@ -227,21 +234,23 @@ class RelSet {
       RelOptCluster cluster,
       RelTraitSet traits) {
     RelSubset subset = getSubset(traits);
-    if (subset == null) {
+    if (subset == null) { //note: 初始化一个 RelSubset
       subset = new RelSubset(cluster, this, traits);
 
       final VolcanoPlanner planner =
           (VolcanoPlanner) cluster.getPlanner();
 
+      // convert from subset to other
       addAbstractConverters(planner, cluster, subset, true);
 
       // Need to first add to subset before adding the abstract converters (for others->subset)
       // since otherwise during register() the planner will try to add this subset again.
       subsets.add(subset);
 
+      // convert from others to subset
       addAbstractConverters(planner, cluster, subset, false);
 
-      if (planner.listener != null) {
+      if (planner.listener != null) { //note: listen 相关
         postEquivalenceEvent(planner, subset);
       }
     }
@@ -267,7 +276,7 @@ class RelSet {
    */
   void addInternal(RelNode rel) {
     if (!rels.contains(rel)) {
-      rels.add(rel);
+      rels.add(rel); //note: 添加到对应的 rels set 中
       for (RelTrait trait : rel.getTraitSet()) {
         assert trait == trait.getTraitDef().canonize(trait);
       }
@@ -295,6 +304,7 @@ class RelSet {
    * <p>One generally calls this method after discovering that two relational
    * expressions are equivalent, and hence the <code>RelSet</code>s they
    * belong to are equivalent also.
+   * note：将两个 RelSet 进行 merge，这个方法的调用通常是在发现两个相同的 relational expression 时
    *
    * <p>After this method completes, <code>otherSet</code> is obsolete, its
    * {@link #equivalentSet} member points to this RelSet, and this RelSet is
@@ -310,7 +320,7 @@ class RelSet {
     assert this.equivalentSet == null;
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
-    otherSet.equivalentSet = this;
+    otherSet.equivalentSet = this; //note: 设置 otherSet 的 equivalentSet（替代集合）
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
@@ -319,6 +329,7 @@ class RelSet {
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
       planner.ruleQueue.subsetImportances.remove(otherSubset);
+      //note: 创建 RelSubset
       RelSubset subset =
           getOrCreateSubset(
               otherSubset.getCluster(),

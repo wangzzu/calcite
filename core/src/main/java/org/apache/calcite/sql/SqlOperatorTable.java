@@ -21,6 +21,7 @@ import java.util.List;
 /**
  * SqlOperatorTable defines a directory interface for enumerating and looking up
  * SQL operators and functions.
+ * SqlOperatorTable 定义一个目录接口用于枚举和查找 SQL 的 operators 和 functions
  */
 public interface SqlOperatorTable {
   //~ Methods ----------------------------------------------------------------
@@ -30,6 +31,7 @@ public interface SqlOperatorTable {
    * by passing SqlSyntax.Function, the returned list is narrowed to only
    * matching SqlFunction objects.
    *
+   * note：查找指定名称和语法的operator列表
    * @param opName   name of operator
    * @param category function category to look up, or null for any matching
    *                 operator

@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * An environment for related relational expressions during the
  * optimization of a query.
+ * note: 在查询优化期间，相关表达式的上下文环境
  */
 public class RelOptCluster {
   //~ Instance fields --------------------------------------------------------
@@ -82,7 +83,9 @@ public class RelOptCluster {
 
     // set up a default rel metadata provider,
     // giving the planner first crack at everything
+    //note: 默认的 metadata provider
     setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
+    //note: trait（对于 HepPlaner 和 VolcanoPlanner 不一样)
     this.emptyTraitSet = planner.emptyTraitSet();
     assert emptyTraitSet.size() == planner.getRelTraitDefs().size();
   }

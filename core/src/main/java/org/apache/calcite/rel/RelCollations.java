@@ -38,6 +38,7 @@ public class RelCollations {
   /**
    * A collation indicating that a relation is not sorted. Ordering by no
    * columns.
+   * note：代表这个 relation 没有排序
    */
   public static final RelCollation EMPTY =
       RelCollationTraitDef.INSTANCE.canonize(
@@ -46,6 +47,7 @@ public class RelCollations {
   /**
    * A collation that cannot be replicated by applying a sort. The only
    * implementation choice is to apply operations that preserve order.
+   * note：不能通过应用一个排序来代替，应用的操作要保持原有的顺序性
    */
   @Deprecated // to be removed before 2.0
   public static final RelCollation PRESERVE =

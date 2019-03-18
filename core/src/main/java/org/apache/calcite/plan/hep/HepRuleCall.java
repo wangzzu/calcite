@@ -30,6 +30,7 @@ import java.util.Map;
  * HepRuleCall implements {@link RelOptRuleCall} for a {@link HepPlanner}. It
  * remembers transformation results so that the planner can choose which one (if
  * any) should replace the original expression.
+ * note: 它记录这个 transformation 结果，因为这个 planner 可以选择哪个可以代替原来的 expression
  */
 public class HepRuleCall extends RelOptRuleCall {
   //~ Instance fields --------------------------------------------------------

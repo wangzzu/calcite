@@ -35,6 +35,8 @@ import java.util.Objects;
  * also provides methods for return type inference for arithmetic in cases where
  * SQL 2003 is implementation defined or impractical.
  *
+ * note：a factory for datatype descriptors
+ *
  * <p>This interface is an example of the
  * {@link org.apache.calcite.util.Glossary#ABSTRACT_FACTORY_PATTERN abstract factory pattern}.
  * Any implementation of <code>RelDataTypeFactory</code> must ensure that type

@@ -40,9 +40,10 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   public CsvTableFactory() {
   }
 
+  //note: 创建表
   public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, RelDataType rowType) {
-    String fileName = (String) operand.get("file");
+    String fileName = (String) operand.get("file"); //note: 直接指定file路径
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final Source source = Sources.file(base, fileName);

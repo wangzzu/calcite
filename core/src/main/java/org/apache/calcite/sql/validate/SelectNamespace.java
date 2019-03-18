@@ -56,6 +56,7 @@ public class SelectNamespace extends AbstractNamespace {
     return select;
   }
 
+  //note: 检查，还是调用 SqlValidatorImpl 的方法
   public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateSelect(select, targetRowType);
     return rowType;

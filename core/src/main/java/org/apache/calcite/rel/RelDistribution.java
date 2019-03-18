@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 /**
  * Description of the physical distribution of a relational expression.
  *
+ * note：一个关系表达式的物理分布
  * <p>TBD:</p>
  * <ul>
  *   <li>Can we shorten {@link Type#HASH_DISTRIBUTED} to HASH, etc.</li>
@@ -51,6 +52,7 @@ public interface RelDistribution extends RelMultipleTrait {
   RelDistribution apply(Mappings.TargetMapping mapping);
 
   /** Type of distribution. */
+  //note: 分布的类型
   enum Type {
     /** There is only one instance of the stream. It sees all records. */
     SINGLETON("single"),

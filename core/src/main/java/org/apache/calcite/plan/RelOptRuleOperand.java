@@ -49,6 +49,7 @@ public class RelOptRuleOperand {
   public int ordinalInRule;
   private final RelTrait trait;
   private final Class<? extends RelNode> clazz;
+  //note: children
   private final ImmutableList<RelOptRuleOperand> children;
 
   /**
@@ -185,6 +186,7 @@ public class RelOptRuleOperand {
   }
 
   /**
+   * 能匹配这个 operand 的 RelNode
    * @return relational expression class matched by this operand
    */
   public Class<? extends RelNode> getMatchedClass() {
@@ -194,6 +196,7 @@ public class RelOptRuleOperand {
   /**
    * Returns the child operands.
    *
+   * note: child operands
    * @return child operands
    */
   public List<RelOptRuleOperand> getChildOperands() {
@@ -203,6 +206,7 @@ public class RelOptRuleOperand {
   /**
    * Returns whether a relational expression matches this operand. It must be
    * of the right class and trait.
+   * note：判断 RelNode 是否 match 这个 operand（如果类型和 trait 不符合，那么会返回 false）
    */
   public boolean matches(RelNode rel) {
     if (!clazz.isInstance(rel)) {

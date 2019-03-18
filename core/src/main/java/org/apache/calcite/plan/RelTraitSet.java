@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
+ * 代表一个有序的 RelTrait 的集合
  */
 public final class RelTraitSet extends AbstractList<RelTrait> {
   private static final RelTrait[] EMPTY_TRAITS = new RelTrait[0];
@@ -184,7 +185,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     if (containsShallow(traits, trait)) {
       return this;
     }
-    final RelTraitDef traitDef = trait.getTraitDef();
+    final RelTraitDef traitDef = trait.getTraitDef(); //note: 比如对于 Converntion 类，找到的是 ConventionTraitDef.INSTANCE
     int index = findIndex(traitDef);
     if (index < 0) {
       // Trait is not present. Ignore it.
@@ -304,6 +305,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * <p>For that to happen, each trait satisfies the corresponding trait in the
    * other set. In particular, each trait set satisfies itself, because each
    * trait subsumes itself.
+   * note：一个 trait set 是否跟另一个 trait set 匹配（如果当前 traits 都在 that 的 traits 中，那么就满足条件了）
+   * note：每个 trait 都是 satisfies 在另一个集合中与之相关的 trait
+   * note：特殊情况下，每个 trait set 自己是 satisfies 自己的
    *
    * <p>Intuitively, if a relational expression is needed that has trait set
    * S (A, B), and trait set S1 (A1, B1) subsumes S, then any relational
@@ -451,6 +455,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * Returns this trait set with a given trait added or overridden. Does not
    * modify this trait set.
    *
+   * 添加或覆盖 trait
    * @param trait Trait
    * @return Trait set with given trait
    */
@@ -501,6 +506,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   /** Returns a list of traits that are in {@code traitSet} but not in this
    * RelTraitSet. */
+  //note: 返回在 traitSet 但是不再本 RelTraitSet 中的 trait 列表
   public ImmutableList<RelTrait> difference(RelTraitSet traitSet) {
     final ImmutableList.Builder<RelTrait> builder = ImmutableList.builder();
     for (Pair<RelTrait, RelTrait> pair : Pair.zip(traits, traitSet.traits)) {
@@ -512,6 +518,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   }
 
   /** Returns whether there are any composite traits in this set. */
+  //note: 是否包含 RelMultipleTrait 这种类型的 Trait，也就是组合 trait
   public boolean allSimple() {
     for (RelTrait trait : traits) {
       if (trait instanceof RelCompositeTrait) {

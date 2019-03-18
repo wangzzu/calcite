@@ -34,6 +34,7 @@ public class SqlSelect extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions
+  //note: 代表相应的操作符下标位置
   public static final int FROM_OPERAND = 2;
   public static final int WHERE_OPERAND = 3;
   public static final int HAVING_OPERAND = 5;
@@ -92,6 +93,7 @@ public class SqlSelect extends SqlCall {
         groupBy, having, windowDecls, orderBy, offset, fetch);
   }
 
+  //note: rewrite时，重新设置各个SqlNode
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:

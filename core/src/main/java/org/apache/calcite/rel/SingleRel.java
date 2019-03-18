@@ -68,6 +68,7 @@ public abstract class SingleRel extends AbstractRelNode {
     return mq.getRowCount(input);
   }
 
+  //note: node.childrenAccept(this);
   @Override public void childrenAccept(RelVisitor visitor) {
     visitor.visit(input, 0, this);
   }

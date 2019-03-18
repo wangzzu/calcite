@@ -80,7 +80,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       Context context) {
     assert costFactory != null;
     this.costFactory = costFactory;
-    if (context == null) {
+    if (context == null) { //note: context 没有设置的情况
       context = Contexts.empty();
     }
     this.context = context;
@@ -125,6 +125,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /**
    * Registers a rule's description.
    *
+   * note：注册一个 rule 的 description（保存在 mapDescToRule 中）
    * @param rule Rule
    */
   protected void mapRuleDescription(RelOptRule rule) {
@@ -287,6 +288,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /**
    * Fires a rule, taking care of tracing and listener notification.
    *
+   * note：触发 rule
    * @param ruleCall description of rule call
    */
   protected void fireRule(
@@ -316,7 +318,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       listener.ruleAttempted(event);
     }
 
-    ruleCall.getRule().onMatch(ruleCall);
+    ruleCall.getRule().onMatch(ruleCall); //note: 调用 onMatch
 
     if (listener != null) {
       RelOptListener.RuleAttemptedEvent event =

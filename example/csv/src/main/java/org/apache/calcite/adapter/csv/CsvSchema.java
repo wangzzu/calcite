@@ -30,6 +30,7 @@ import java.util.Map;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
+//note：schema 会自动发现相应的表信息
 public class CsvSchema extends AbstractSchema {
   private final File directoryFile;
   private final CsvTable.Flavor flavor;
@@ -51,6 +52,7 @@ public class CsvSchema extends AbstractSchema {
   /** Looks for a suffix on a string and returns
    * either the string with the suffix removed
    * or the original string. */
+  //note: 按后缀检查字符串，返回移除后缀后的字符串或者原字符串
   private static String trim(String s, String suffix) {
     String trimmed = trimOrNull(s, suffix);
     return trimmed != null ? trimmed : s;
@@ -59,12 +61,14 @@ public class CsvSchema extends AbstractSchema {
   /** Looks for a suffix on a string and returns
    * either the string with the suffix removed
    * or null. */
+  //note: 按后缀检查字符串，返回移除后缀后的字符串或者 null
   private static String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
   }
 
+  //note: 创建表
   @Override protected Map<String, Table> getTableMap() {
     if (tableMap == null) {
       tableMap = createTableMap();
@@ -77,7 +81,7 @@ public class CsvSchema extends AbstractSchema {
     // ".json.gz".
     final Source baseSource = Sources.of(directoryFile);
     File[] files = directoryFile.listFiles((dir, name) -> {
-      final String nameSansGz = trim(name, ".gz");
+      final String nameSansGz = trim(name, ".gz"); //note: 去掉'.gz'
       return nameSansGz.endsWith(".csv")
           || nameSansGz.endsWith(".json");
     });
@@ -91,7 +95,7 @@ public class CsvSchema extends AbstractSchema {
       Source source = Sources.of(file);
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
-      if (sourceSansJson != null) {
+      if (sourceSansJson != null) { //note: 如果文件时json命名
         JsonTable table = new JsonTable(source);
         builder.put(sourceSansJson.relative(baseSource).path(), table);
         continue;
@@ -110,7 +114,7 @@ public class CsvSchema extends AbstractSchema {
     case TRANSLATABLE:
       return new CsvTranslatableTable(source, null);
     case SCANNABLE:
-      return new CsvScannableTable(source, null);
+      return new CsvScannableTable(source, null); //note: 默认的情况
     case FILTERABLE:
       return new CsvFilterableTable(source, null);
     default:

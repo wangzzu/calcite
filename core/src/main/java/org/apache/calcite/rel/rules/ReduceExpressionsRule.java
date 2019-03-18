@@ -100,6 +100,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       Pattern.compile("Reduce(Expressions|Values)Rule.*");
 
   /**
+   * note: 减少 filter 中常量，做相应的折叠
    * Singleton rule that reduces constants inside a
    * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */

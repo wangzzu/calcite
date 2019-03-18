@@ -23,6 +23,7 @@ import java.util.Set;
 /**
  * Describes the necessary parameters for an implementation in order to
  * identify and set dynamic variables
+ * note：为了识别和设置动态变量，描述一个 implementation 的必要参数
  */
 public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
   /**

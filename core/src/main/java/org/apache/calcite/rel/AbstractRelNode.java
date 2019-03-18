@@ -264,6 +264,7 @@ public abstract class AbstractRelNode implements RelNode {
   public void collectVariablesSet(Set<CorrelationId> variableSet) {
   }
 
+  //note: 处理相应的 child RelNode
   public void childrenAccept(RelVisitor visitor) {
     List<RelNode> inputs = getInputs();
     for (int i = 0; i < inputs.size(); i++) {
@@ -331,6 +332,7 @@ public abstract class AbstractRelNode implements RelNode {
     List<RelNode> oldInputs = getInputs();
     List<RelNode> inputs = new ArrayList<>(oldInputs.size());
     for (final RelNode input : oldInputs) {
+      //note: 进行注册，返回的是 RelSubset
       RelNode e = planner.ensureRegistered(input, null);
       if (e != input) {
         // TODO: change 'equal' to 'eq', which is stronger.
@@ -345,8 +347,11 @@ public abstract class AbstractRelNode implements RelNode {
     }
     RelNode r = this;
     if (!Util.equalShallow(oldInputs, inputs)) {
+      //note: 其实就是做一下相应的验证，走的子类的 copy 方法
+      //note: 会使用最新的 inputs，也就是生成的 RelSubset
       r = copy(getTraitSet(), inputs);
     }
+
     r.recomputeDigest();
     assert r.isValid(Litmus.THROW, null);
     return r;

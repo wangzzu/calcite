@@ -28,6 +28,7 @@ import java.util.Map;
 /**
  * A match of a rule to a particular set of target relational expressions,
  * frozen in time.
+ * note：规则与一组特定 relational expression 匹配
  */
 class VolcanoRuleMatch extends VolcanoRuleCall {
   //~ Instance fields --------------------------------------------------------
@@ -76,6 +77,9 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
   /**
    * Returns the importance of this rule.
    *
+   * note: 返回 rule 的 importance
+   * note：第一次调用时，通过 computeImportance 计算，之后会使用缓存的值（也就是cachedImportance）
+   * note：直到 clearCachedImportance 调用清除了相应的缓存
    * <p>Calls {@link #computeImportance()} the first time, thereafter uses a
    * cached value until {@link #clearCachedImportance()} is called.
    *
@@ -91,20 +95,24 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
 
   /**
    * Computes the importance of this rule match.
+   * note：计算 rule match 的 importance
    *
    * @return importance of this rule match
    */
   double computeImportance() {
-    assert rels[0] != null;
+    assert rels[0] != null; //note: rels[0] 这个 Rule Match 对应的 RelSubset
     RelSubset subset = volcanoPlanner.getSubset(rels[0]);
     double importance = 0;
     if (subset != null) {
+      //note: 获取 RelSubset 的 importance
       importance = volcanoPlanner.ruleQueue.getImportance(subset);
     }
+    //note: Returns a guess as to which subset the result of this rule will belong to.
     final RelSubset targetSubset = guessSubset();
     if ((targetSubset != null) && (targetSubset != subset)) {
       // If this rule will generate a member of an equivalence class
       // which is more important, use that importance.
+      //note: 获取 targetSubset 的 importance
       final double targetImportance =
           volcanoPlanner.ruleQueue.getImportance(targetSubset);
       if (targetImportance > importance) {
@@ -120,7 +128,7 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
         // CHECKSTYLE: IGNORE 3
         if ((subset != null)
             && subset.bestCost.isLt(targetSubset.bestCost)
-            && false) {
+            && false) { //note: 肯定不会进入
           importance *=
               targetSubset.bestCost.divideBy(subset.bestCost);
           importance = Math.min(importance, 0.99);

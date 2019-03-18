@@ -25,6 +25,8 @@ package org.apache.calcite.plan;
  * plugging in their own cost models with well-defined meanings for each unit.
  * Optimizers which supply their own cost models may also extend this interface
  * with additional cost metrics such as memory usage.
+ *
+ * note：以处理的行数、CPU cost、IO cost 的形式定义优化器 cost
  */
 public interface RelOptCost {
   //~ Methods ----------------------------------------------------------------
@@ -51,6 +53,7 @@ public interface RelOptCost {
    * been implemented (e.g. a pure relational algebra expression) or can't
    * actually be implemented, e.g. a transfer of data between two disconnected
    * sites
+   * note：当前的表达式不能被执行（比如：纯的关系代数表达式）或者实际上是不能执行的（比如：在两个连接的网站传输数据）
    */
   boolean isInfinite();
 

@@ -53,7 +53,7 @@ import javax.annotation.Nonnull;
 
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
- *
+ * note：封装SQL语言之间的差异
  * <p>It is used by classes such as {@link SqlWriter} and
  * {@link org.apache.calcite.sql.util.SqlBuilder}.
  */

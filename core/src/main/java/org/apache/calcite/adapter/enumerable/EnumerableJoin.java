@@ -47,6 +47,8 @@ import java.util.Set;
 public class EnumerableJoin extends EquiJoin implements EnumerableRel {
   /** Creates an EnumerableJoin.
    *
+   *
+   * note: 允许在子节点做join，最后再join一起
    * <p>Use {@link #create} unless you know what you're doing. */
   protected EnumerableJoin(
       RelOptCluster cluster,

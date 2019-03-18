@@ -27,6 +27,8 @@ public interface Convention extends RelTrait {
    * convention. It is not implementable, and has to be transformed to
    * something else in order to be implemented.
    *
+   * note：relational expression 的 convention，它不支持任何 convention
+   * note：它是不能实施的，为了落地实施必须 transform 为其他的 convention
    * <p>Relational expressions generally start off in this form.</p>
    *
    * <p>Such expressions always have infinite cost.</p>

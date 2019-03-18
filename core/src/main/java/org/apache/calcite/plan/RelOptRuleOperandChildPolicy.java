@@ -23,12 +23,14 @@ package org.apache.calcite.plan;
 public enum RelOptRuleOperandChildPolicy {
   /**
    * Signifies that operand can have any number of children.
+   * note：operand 可以有任意的子节点
    */
   ANY,
 
   /**
    * Signifies that operand has no children. Therefore it matches a
    * leaf node, such as a table scan or VALUES operator.
+   * note：operand 不能有子节点，比如 table scan 或 VALUES operator
    *
    * <p>{@code RelOptRuleOperand(Foo.class, NONE)} is equivalent to
    * {@code RelOptRuleOperand(Foo.class)} but we prefer the former because
@@ -39,6 +41,7 @@ public enum RelOptRuleOperandChildPolicy {
   /**
    * Signifies that the operand's children must precisely match its
    * child operands, in order.
+   * note：表示 operand 的 children 必须按顺序匹配
    */
   SOME,
 
