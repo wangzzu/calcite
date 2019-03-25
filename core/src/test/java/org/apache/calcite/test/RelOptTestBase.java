@@ -199,6 +199,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     assertThat(relBefore, notNullValue());
 
     final String planBefore = NL + RelOptUtil.toString(relBefore);
+    System.out.println(planBefore);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     SqlToRelTestBase.assertValid(relBefore);
 
@@ -216,6 +217,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     if (unchanged) {
       assertThat(planAfter, is(planBefore));
     } else {
+      //note: 验证
       diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
       if (planBefore.equals(planAfter)) {
         throw new AssertionError("Expected plan before and after is the same.\n"

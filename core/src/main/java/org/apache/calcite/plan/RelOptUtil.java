@@ -2305,6 +2305,7 @@ public abstract class RelOptUtil {
 
   /**
    * Simplifies outer joins if filter above would reject nulls.
+   * note：如果 filter 拒绝空值，这里将会对 out join 做相应的转化
    *
    * @param joinRel Join
    * @param aboveFilters Filters from above

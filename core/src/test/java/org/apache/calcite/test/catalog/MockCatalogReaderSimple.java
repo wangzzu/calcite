@@ -83,6 +83,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
             "customBigInt"),
         typeFactory -> typeFactory.createSqlType(SqlTypeName.BIGINT));
 
+    //note: test 时，注册相应的表信息
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14, null,

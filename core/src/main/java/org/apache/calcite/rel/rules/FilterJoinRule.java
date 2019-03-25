@@ -118,6 +118,7 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
+    //note: 先拿到 join condition
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
     final List<RexNode> origJoinFilters = ImmutableList.copyOf(joinFilters);
@@ -138,6 +139,7 @@ public abstract class FilterJoinRule extends RelOptRule {
         ImmutableList.copyOf(aboveFilters);
 
     // Simplify Outer Joins
+    //note: 对 out join 做相应的转换（主要依据 condition 部分是否允许为 null 的情况）
     JoinRelType joinType = join.getJoinType();
     if (smart
         && !origAboveFilters.isEmpty()
@@ -202,6 +204,7 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     // if nothing actually got pushed and there is nothing leftover,
     // then this rule is a no-op
+    //note: 如果什么都不需要做或者什么都没做
     if ((!filterPushed
             && joinType == join.getJoinType())
         || (joinFilters.isEmpty()
@@ -212,6 +215,7 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     // create Filters on top of the children if any filters were
     // pushed to them
+    //note: 根据 leftFilters 或 rightFilters 创建相应的 leftRel 和 rightRel
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
     final RelNode leftRel =
@@ -238,6 +242,7 @@ public abstract class FilterJoinRule extends RelOptRule {
       return;
     }
 
+    //note: 创建一个新的 Join RelNode 节点
     RelNode newJoinRel =
         join.copy(
             join.getTraitSet(),

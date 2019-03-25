@@ -17,6 +17,10 @@
 package org.apache.calcite.test;
 
 //note: 各个 rules 测试 case，值得看一下
+/**
+ * test 相应的输出在 target/surefire/.../RelOptRulesTest.xml 中
+ * 与在这里的输出作对比：src/test/resources/.../RelOptRulesTest.xml（期望的输出）
+ */
 
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
@@ -2071,6 +2075,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             final RelDataType intType =
                 typeFactory.createSqlType(SqlTypeName.INTEGER);
             for (int i = 0; i < 10; i++) {
+              //note: 注册 A、B、C 等表信息
               String t = String.valueOf((char) ('A' + i));
               MockTable table = MockTable.create(this, schema, t, false, 100);
               table.addColumn(t, intType);
