@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlOperator;
  * Visitor class, follows the
  * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern}.
  *
+ * note: 采用了 visitor 模式，可以递归遍历所有的 SqlNode
  * <p>The type parameter <code>R</code> is the return type of each <code>
  * visit()</code> method. If the methods do not need to return a value, use
  * {@link Void}.

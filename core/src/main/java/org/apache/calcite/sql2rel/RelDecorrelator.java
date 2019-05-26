@@ -202,6 +202,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         new RelDecorrelator(corelMap,
             cluster.getPlanner().getContext(), relBuilder);
 
+    //note: 这里已经有 HepPlanner 做了一次优化
     RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
@@ -210,6 +211,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               SqlExplainFormat.TEXT, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
 
+    //note: 需要做优化的话（对应的集合不为 null）这里会做相应的优化（这里可能会做两次优化）
     if (!decorrelator.cm.mapCorToCorRel.isEmpty()) {
       newRootRel = decorrelator.decorrelate(newRootRel);
     }
@@ -230,6 +232,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   private RelNode decorrelate(RelNode root) {
     // first adjust count() expression if any
+    //note: 对 count() 表达式做一些调整
     final RelBuilderFactory f = relBuilderFactory();
     HepProgram program = HepProgram.builder()
         .addRuleInstance(new AdjustProjectForCountAggregateRule(false, f))
@@ -254,6 +257,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final Frame frame = getInvoke(root, null);
     if (frame != null) {
       // has been rewritten; apply rules post-decorrelation
+      //note: 被重写了，再次进行相应的优化
       final HepProgram program2 = HepProgram.builder()
           .addRuleInstance(
               new FilterJoinRule.FilterIntoJoinRule(

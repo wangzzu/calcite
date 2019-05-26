@@ -774,6 +774,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param root Root relational expression in a tree
    * @return Multi-line string describing the rules that created the tree
    */
+  //note: 只有在 debug 的情况下，才打印
   private String provenance(RelNode root) {
     final StringWriter sw = new StringWriter();
     final PrintWriter pw = new PrintWriter(sw);

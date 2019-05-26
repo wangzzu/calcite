@@ -57,6 +57,7 @@ public abstract class SqlCall extends SqlNode {
    * Changes the value of an operand. Allows some rewrite by
    * {@link SqlValidator}; use sparingly.
    *
+   * note：改变一个 operand 的值，一般用于 SqlValidator 的 rewrite 操作
    * @param i Operand index
    * @param operand Operand value
    */

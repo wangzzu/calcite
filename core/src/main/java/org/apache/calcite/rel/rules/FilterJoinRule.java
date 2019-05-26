@@ -50,6 +50,7 @@ import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 public abstract class FilterJoinRule extends RelOptRule {
   /** Predicate that always returns true. With this predicate, every filter
    * will be pushed into the ON clause. */
+  //note: 总是返回 true
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
 
   /** Rule that pushes predicates from a Filter into the Join below them. */
@@ -131,6 +132,7 @@ public abstract class FilterJoinRule extends RelOptRule {
       return;
     }
 
+    //note: 拿到 filter 的 condition
     final List<RexNode> aboveFilters =
         filter != null
             ? conjunctions(filter.getCondition())
@@ -139,7 +141,8 @@ public abstract class FilterJoinRule extends RelOptRule {
         ImmutableList.copyOf(aboveFilters);
 
     // Simplify Outer Joins
-    //note: 对 out join 做相应的转换（主要依据 condition 部分是否允许为 null 的情况）
+    //note: 对 out join 做相应的转换（主要依据 condition 部分是否允许为 null 的情况，如果要求不能为 null，那么可以对其做相应的转化）
+    //note: 比如 left join，并且要求左边表指定的值不能为 null，那么这个时候就可以转化为 inner 类型的 join
     JoinRelType joinType = join.getJoinType();
     if (smart
         && !origAboveFilters.isEmpty()
@@ -159,6 +162,7 @@ public abstract class FilterJoinRule extends RelOptRule {
     // Try to push down above filters. These are typically where clause
     // filters. They can be pushed down if they are not on the NULL
     // generating side.
+    //note: 将 where 条件中的 filter 下推
     boolean filterPushed = false;
     if (RelOptUtil.classifyFilters(
         join,
@@ -189,6 +193,7 @@ public abstract class FilterJoinRule extends RelOptRule {
     // Try to push down filters in ON clause. A ON clause filter can only be
     // pushed down if it does not affect the non-matching set, i.e. it is
     // not on the side which is preserved.
+    //note: 将 on 条件中的 filter 下推
     if (RelOptUtil.classifyFilters(
         join,
         joinFilters,
@@ -270,6 +275,7 @@ public abstract class FilterJoinRule extends RelOptRule {
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
 
+    //note: 替换节点。此时会改变执行计划树，同时会触发新的Rule命中
     call.transformTo(relBuilder.build());
   }
 

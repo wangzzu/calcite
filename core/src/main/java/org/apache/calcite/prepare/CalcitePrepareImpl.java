@@ -511,6 +511,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Creates a query planner and initializes it with a default set of
    * rules. */
+  //note: 创建 planner 时，创建的是 VolcanoPlanner 类型的 planner
   protected RelOptPlanner createPlanner(
       final CalcitePrepare.Context prepareContext,
       org.apache.calcite.plan.Context externalContext,
