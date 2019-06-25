@@ -81,6 +81,7 @@ public class JoinPushTransitivePredicatesRule extends RelOptRule {
     RelNode rChild = join.getRight();
     if (preds.rightInferredPredicates.size() > 0) {
       RelNode curr = rChild;
+      //note: 这里会将谓词（filter）下推
       rChild = relBuilder.push(rChild)
           .filter(preds.rightInferredPredicates).build();
       call.getPlanner().onCopy(curr, rChild);

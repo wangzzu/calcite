@@ -3462,14 +3462,15 @@ public class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2275">[CALCITE-2275]
    * JoinPushTransitivePredicatesRule wrongly pushes down NOT condition</a>. */
+  //note: 以这个为示例
   @Test public void testInferringPredicatesWithNotOperatorInJoinCondition() {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+        //.addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
         .addRuleInstance(FilterJoinRule.JOIN)
         .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
         .build();
     final String sql = "select * from sales.emp d\n"
-        + "join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)";
+        + "join sales.EMP e on e.deptno = d.deptno and d.deptno not in (4, 6)";
     sql(sql).withDecorrelation(true).with(program).check();
   }
 
