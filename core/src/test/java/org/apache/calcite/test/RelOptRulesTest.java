@@ -751,6 +751,12 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testSemiJoinTrim() throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");
+    System.out.println(sql);
+
+    sql ="select s.deptno, 1E-10 from (select * from dept where exists (\n"
+        + "  select * from emp\n"
+        + "  where emp.deptno = dept.deptno\n"
+        + "  and emp.sal > 100)) s join customer.account on s.deptno = account.acctno";
 
     TesterImpl t = (TesterImpl) tester;
     final RelDataTypeFactory typeFactory = t.getTypeFactory();
@@ -2995,6 +3001,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   private void transitiveInference(RelOptRule... extraRules) throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     final String sql = diffRepos.expand(null, "${sql}");
+    System.out.println(sql);
 
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterJoinRule.DUMB_FILTER_ON_JOIN)

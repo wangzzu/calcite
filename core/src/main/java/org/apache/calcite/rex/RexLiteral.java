@@ -309,11 +309,12 @@ public class RexLiteral extends RexNode {
       }
       // fall through
     case DECIMAL:
+      return value instanceof BigDecimal;
     case DOUBLE:
     case FLOAT:
     case REAL:
     case BIGINT:
-      return value instanceof BigDecimal;
+      return value instanceof Double;
     case DATE:
       return value instanceof DateString;
     case TIME:
