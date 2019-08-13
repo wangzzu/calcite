@@ -1797,9 +1797,17 @@ public class SqlToRelConverter {
     case ALL:
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
-        if (validator.getValidatedNodeType(node).isNullable()) {
+        //if (validator.getValidatedNodeType(node).isNullable()) {
+        //  break;
+        //} else if (true) {
+        //  break;
+        //}
+        RelDataType type = validator.getValidatedNodeTypeIfKnown(node);
+        if (type == null) {
+          // The node might not be validated if we still don't know type of the node.
+          // Therefore return directly.
           break;
-        } else if (true) {
+        } else {
           break;
         }
         // fall through
@@ -3497,6 +3505,8 @@ public class SqlToRelConverter {
   private RelNode convertUpdate(SqlUpdate call) {
     final SqlValidatorScope scope = validator.getWhereScope(call.getSourceSelect());
     Blackboard bb = createBlackboard(scope, null, false);
+
+    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
     for (SqlNode n : call.getSourceExpressionList()) {
