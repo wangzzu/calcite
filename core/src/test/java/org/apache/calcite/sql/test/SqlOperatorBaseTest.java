@@ -4362,9 +4362,6 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":{}}', "
             + "'strict $.foo' default 'empty' on error)",
         "empty", "VARCHAR(2000)");
-    tester.checkString("json_value(true, "
-            + "'strict $.foo' default 'empty' on error)",
-        "empty", "VARCHAR(2000)");
   }
 
   @Test public void testJsonQuery() {
